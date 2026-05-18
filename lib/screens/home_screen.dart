@@ -282,9 +282,24 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ],
         ),
 
-        // Notification + Avatar
+        // Friends + Notification + Avatar
         Row(
           children: [
+            GestureDetector(
+              onTap: () => context.go('/friends'),
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.05),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white12),
+                ),
+                child: const Icon(Icons.group_outlined,
+                    color: Colors.white60, size: 18),
+              ),
+            ),
+            const SizedBox(width: 10),
             Stack(
               children: [
                 Container(

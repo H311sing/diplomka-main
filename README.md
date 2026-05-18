@@ -18,6 +18,8 @@ trend, and get daily reminders to stay on track.
 - **Stats** — calories-burned and workout-minute charts, an animated
   **weight-progress line chart**, achievements, and a daily health
   overview.
+- **Friends** — search other users, send/accept friend requests, and
+  manage your gym-bro list.
 - **Profile** — edit personal info, upload an avatar, and toggle
   **water / workout reminders**.
 - **Local reminders** — daily water (10:00, 13:00, 16:00, 19:00) and
@@ -41,39 +43,71 @@ trend, and get daily reminders to stay on track.
 - Flutter SDK `>=3.0.0`
 - A Supabase project
 
-### 2. Configure Supabase
+### 2. Pick a backend
 
-Open `lib/core/supabase_config.dart` and set your project URL and anon key
-(Supabase Dashboard → Settings → API):
+The app talks to Supabase. You can use the hosted cloud project **or**
+run the whole Supabase stack locally in Docker — `lib/core/supabase_config.dart`
+switches between them with one flag:
 
 ```dart
-static const String supabaseUrl = 'https://YOUR-PROJECT.supabase.co';
-static const String supabaseAnonKey = 'YOUR-ANON-KEY';
+static const bool useLocalDocker = false; // true → local Docker
 ```
 
-### 3. Create the database tables
+**Option A — Supabase cloud.** Set `_cloudUrl` / `_cloudAnonKey` in
+`supabase_config.dart` (Dashboard → Settings → API), then run
+[`database/schema.sql`](database/schema.sql) and
+[`database/social.sql`](database/social.sql) in the SQL Editor. The app
+also expects the base tables `profiles`, `nutrition_logs`, `water_logs`,
+`workout_logs`, and a public `avatars` storage bucket.
 
-Run [`database/schema.sql`](database/schema.sql) in the Supabase SQL
-Editor. It creates the `workout_exercises` and `weight_logs` tables (with
-row-level security) used by the Workout Plan and Weight Progress features.
+**Option B — self-hosted Supabase in Docker (recommended for development).**
+See [Local backend with Docker](#local-backend-with-docker) below.
 
-The app also expects these existing tables: `profiles`, `nutrition_logs`,
-`water_logs`, `workout_logs`. Create a public `avatars` storage bucket for
-profile pictures.
-
-### 4. Run
+### 3. Run
 
 ```bash
 flutter pub get
 flutter run
 ```
 
+## Local backend with Docker
+
+The [`supabase/`](supabase) folder is a [Supabase CLI](https://supabase.com/docs/guides/cli)
+project. `supabase start` boots the entire backend — Postgres, Auth,
+Storage, REST API, Realtime and Studio — as Docker containers, and
+applies every migration in `supabase/migrations/`.
+
+**Prerequisites:** Docker Desktop and the Supabase CLI
+(`scoop install supabase`, `npm i -g supabase`, or see the CLI docs).
+
+```bash
+supabase start          # boots the stack + applies migrations
+supabase db reset       # wipes the DB and re-applies migrations
+supabase stop           # shuts the stack down
+```
+
+Then flip the backend in `lib/core/supabase_config.dart`:
+
+```dart
+static const bool useLocalDocker = true;
+```
+
+- Web / desktop reach the API at `http://127.0.0.1:54321`.
+- An Android emulator must use `http://10.0.2.2:54321` instead — it
+  cannot see the host's `localhost`.
+- Supabase Studio (DB browser): `http://127.0.0.1:54323`.
+- Captured emails (signup confirmations): `http://127.0.0.1:54324`.
+
+The schema lives in [`supabase/migrations/`](supabase/migrations) — all
+tables, row-level security, the `avatars` storage bucket, and a trigger
+that creates a `profiles` row for every new user.
+
 ## Project structure
 
 ```
 lib/
 ├── core/
-│   ├── supabase_config.dart      # Supabase credentials
+│   ├── supabase_config.dart      # Backend URL/key + cloud↔Docker switch
 │   ├── theme.dart                # App colors & typography
 │   └── notification_service.dart # Local reminder scheduling
 ├── screens/
@@ -84,12 +118,17 @@ lib/
 │   ├── workout_plan_screen.dart  # Exercise plan CRUD
 │   ├── stats_screen.dart         # Charts + weight progress
 │   ├── nutrition_screen.dart
+│   ├── friends_screen.dart       # User search + friend requests
 │   └── profile_screen.dart       # Profile + reminder settings
 ├── widgets/
 │   └── auth_text_field.dart
 └── main.dart
+supabase/
+├── config.toml                   # Supabase CLI / Docker config
+└── migrations/                   # Full schema for the self-hosted DB
 database/
-└── schema.sql                    # SQL for new tables
+├── schema.sql                    # Workout plan + weight tables (cloud)
+└── social.sql                    # Friendships table (cloud)
 ```
 
 ## Notifications
