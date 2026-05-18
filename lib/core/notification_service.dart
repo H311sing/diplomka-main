@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest_all.dart' as tzdata;
@@ -19,7 +20,9 @@ class NotificationService {
   static const int _workoutId = 100;
 
   Future<void> init() async {
-    if (_initialized) return;
+    // Local notifications have no web implementation — skip on web so the
+    // app still starts in a browser.
+    if (_initialized || kIsWeb) return;
     tzdata.initializeTimeZones();
     try {
       tz.setLocalLocation(tz.getLocation(await FlutterTimezone.getLocalTimezone()));
@@ -41,6 +44,7 @@ class NotificationService {
 
   /// Asks the OS for permission. Returns true if granted (or not required).
   Future<bool> requestPermission() async {
+    if (kIsWeb) return false;
     await init();
     final android = _plugin.resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin>();
@@ -80,6 +84,7 @@ class NotificationService {
   }
 
   Future<void> scheduleWaterReminders() async {
+    if (kIsWeb) return;
     await init();
     await cancelWaterReminders();
     for (var i = 0; i < waterHours.length; i++) {
@@ -98,12 +103,14 @@ class NotificationService {
   }
 
   Future<void> cancelWaterReminders() async {
+    if (kIsWeb) return;
     for (var i = 0; i < waterHours.length; i++) {
       await _plugin.cancel(i);
     }
   }
 
   Future<void> scheduleWorkoutReminder() async {
+    if (kIsWeb) return;
     await init();
     await _plugin.zonedSchedule(
       _workoutId,
@@ -118,5 +125,8 @@ class NotificationService {
     );
   }
 
-  Future<void> cancelWorkoutReminder() => _plugin.cancel(_workoutId);
+  Future<void> cancelWorkoutReminder() async {
+    if (kIsWeb) return;
+    await _plugin.cancel(_workoutId);
+  }
 }

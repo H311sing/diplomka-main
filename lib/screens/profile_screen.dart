@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
@@ -49,6 +50,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _toggleWaterReminders(bool value) async {
+    if (kIsWeb) {
+      _showError('Reminders are available in the mobile app only');
+      return;
+    }
     if (value) {
       final granted =
           await NotificationService.instance.requestPermission();
@@ -71,6 +76,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _toggleWorkoutReminders(bool value) async {
+    if (kIsWeb) {
+      _showError('Reminders are available in the mobile app only');
+      return;
+    }
     if (value) {
       final granted =
           await NotificationService.instance.requestPermission();
