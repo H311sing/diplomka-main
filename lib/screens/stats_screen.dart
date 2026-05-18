@@ -1346,18 +1346,31 @@ class _StatsScreenState extends State<StatsScreen>
                       final today = DateTime.now()
                           .toIso8601String()
                           .split('T')[0];
+                      final mins =
+                          int.tryParse(durationCtrl.text) ?? 0;
+                      final cals =
+                          double.tryParse(caloriesCtrl.text) ?? 0;
                       await _supabase
                           .from('workout_logs')
                           .insert({
                         'user_id': user.id,
                         'name': nameCtrl.text.trim(),
-                        'duration_minutes':
-                        int.tryParse(durationCtrl.text) ?? 0,
-                        'calories_burned':
-                        double.tryParse(caloriesCtrl.text) ??
-                            0,
+                        'duration_minutes': mins,
+                        'calories_burned': cals,
                         'workout_date': today,
                       });
+
+                      // Surface the workout in the friends feed.
+                      try {
+                        await _supabase.from('activities').insert({
+                          'user_id': user.id,
+                          'type': 'workout',
+                          'title': nameCtrl.text.trim(),
+                          'detail':
+                              '$mins min · ${cals.toInt()} kcal',
+                        });
+                      } catch (_) {}
+
                       if (ctx.mounted) Navigator.pop(ctx);
                       await _loadStats();
                     } catch (e) {

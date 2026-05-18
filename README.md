@@ -20,6 +20,8 @@ trend, and get daily reminders to stay on track.
   overview.
 - **Friends** — search other users, send/accept friend requests, and
   manage your gym-bro list.
+- **Activity feed** — your workouts and your friends' workouts appear
+  in a shared feed you can like.
 - **Profile** — edit personal info, upload an avatar, and toggle
   **water / workout reminders**.
 - **Local reminders** — daily water (10:00, 13:00, 16:00, 19:00) and
@@ -119,6 +121,7 @@ lib/
 │   ├── stats_screen.dart         # Charts + weight progress
 │   ├── nutrition_screen.dart
 │   ├── friends_screen.dart       # User search + friend requests
+│   ├── feed_screen.dart          # Shared activity feed + likes
 │   └── profile_screen.dart       # Profile + reminder settings
 ├── widgets/
 │   └── auth_text_field.dart
@@ -128,7 +131,8 @@ supabase/
 └── migrations/                   # Full schema for the self-hosted DB
 database/
 ├── schema.sql                    # Workout plan + weight tables (cloud)
-└── social.sql                    # Friendships table (cloud)
+├── social.sql                    # Friendships table (cloud)
+└── feed.sql                      # Activity feed tables (cloud)
 ```
 
 ## Notifications

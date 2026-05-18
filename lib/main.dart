@@ -13,6 +13,7 @@ import 'screens/stats_screen.dart';
 import 'screens/nutrition_screen.dart';
 import 'screens/workout_plan_screen.dart';
 import 'screens/friends_screen.dart';
+import 'screens/feed_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -40,6 +41,7 @@ final _router = GoRouter(
     GoRoute(
         path: '/workout-plan', builder: (_, __) => const WorkoutPlanScreen()),
     GoRoute(path: '/friends', builder: (_, __) => const FriendsScreen()),
+    GoRoute(path: '/feed', builder: (_, __) => const FeedScreen()),
   ],
 );
 

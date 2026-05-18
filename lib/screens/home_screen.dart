@@ -282,11 +282,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ],
         ),
 
-        // Friends + Notification + Avatar
+        // Feed + Notification + Avatar
         Row(
           children: [
             GestureDetector(
-              onTap: () => context.go('/friends'),
+              onTap: () => context.go('/feed'),
               child: Container(
                 width: 36,
                 height: 36,
@@ -295,7 +295,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   shape: BoxShape.circle,
                   border: Border.all(color: Colors.white12),
                 ),
-                child: const Icon(Icons.group_outlined,
+                child: const Icon(Icons.dynamic_feed_outlined,
                     color: Colors.white60, size: 18),
               ),
             ),
