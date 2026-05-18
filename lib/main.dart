@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'core/supabase_config.dart';
 import 'core/theme.dart';
+import 'core/notification_service.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
@@ -10,6 +11,7 @@ import 'screens/home_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/stats_screen.dart';
 import 'screens/nutrition_screen.dart';
+import 'screens/workout_plan_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,6 +20,8 @@ void main() async {
     url: SupabaseConfig.supabaseUrl,
     anonKey: SupabaseConfig.supabaseAnonKey,
   );
+
+  await NotificationService.instance.init();
 
   runApp(const GymBroApp());
 }
@@ -32,6 +36,8 @@ final _router = GoRouter(
     GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
     GoRoute(path: '/stats', builder: (_, __) => const StatsScreen()),
     GoRoute(path: '/nutrition', builder: (_, __) => const NutritionScreen()),
+    GoRoute(
+        path: '/workout-plan', builder: (_, __) => const WorkoutPlanScreen()),
   ],
 );
 

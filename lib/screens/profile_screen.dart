@@ -4,8 +4,10 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/theme.dart';
+import '../core/notification_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -24,6 +26,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _saving = false;
   String? _avatarUrl;
   Uint8List? _avatarBytes;
+  bool _waterReminders = false;
+  bool _workoutReminders = false;
 
   final _supabase = Supabase.instance.client;
 
@@ -31,6 +35,61 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _loadProfile();
+    _loadReminderPrefs();
+  }
+
+  Future<void> _loadReminderPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {
+        _waterReminders = prefs.getBool('water_reminders') ?? false;
+        _workoutReminders = prefs.getBool('workout_reminders') ?? false;
+      });
+    }
+  }
+
+  Future<void> _toggleWaterReminders(bool value) async {
+    if (value) {
+      final granted =
+          await NotificationService.instance.requestPermission();
+      if (!granted) {
+        _showError('Notification permission denied');
+        return;
+      }
+      await NotificationService.instance.scheduleWaterReminders();
+    } else {
+      await NotificationService.instance.cancelWaterReminders();
+    }
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('water_reminders', value);
+    if (mounted) {
+      setState(() => _waterReminders = value);
+      _showSuccess(value
+          ? 'Water reminders enabled'
+          : 'Water reminders turned off');
+    }
+  }
+
+  Future<void> _toggleWorkoutReminders(bool value) async {
+    if (value) {
+      final granted =
+          await NotificationService.instance.requestPermission();
+      if (!granted) {
+        _showError('Notification permission denied');
+        return;
+      }
+      await NotificationService.instance.scheduleWorkoutReminder();
+    } else {
+      await NotificationService.instance.cancelWorkoutReminder();
+    }
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('workout_reminders', value);
+    if (mounted) {
+      setState(() => _workoutReminders = value);
+      _showSuccess(value
+          ? 'Workout reminder enabled'
+          : 'Workout reminder turned off');
+    }
   }
 
   @override
@@ -115,12 +174,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() => _saving = true);
     try {
       final user = _supabase.auth.currentUser!;
+      final weight = _weightCtrl.text.isNotEmpty
+          ? double.tryParse(_weightCtrl.text.replaceAll(',', '.'))
+          : null;
       await _supabase.from('profiles').upsert({
         'id': user.id,
         'full_name': _nameCtrl.text.trim(),
-        'weight': _weightCtrl.text.isNotEmpty
-            ? double.tryParse(_weightCtrl.text)
-            : null,
+        'weight': weight,
         'height': _heightCtrl.text.isNotEmpty
             ? double.tryParse(_heightCtrl.text)
             : null,
@@ -128,6 +188,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
         'avatar_url': _avatarUrl,
         'updated_at': DateTime.now().toIso8601String(),
       });
+
+      // Record a weight entry so the Stats chart can track progress.
+      if (weight != null && weight > 0) {
+        final today = DateTime.now().toIso8601String().split('T')[0];
+        await _supabase.from('weight_logs').upsert({
+          'user_id': user.id,
+          'weight': weight,
+          'logged_at': today,
+        }, onConflict: 'user_id,logged_at');
+      }
+
       _showSuccess('Profile saved!');
     } catch (e) {
       _showError('Failed to save profile');
@@ -206,6 +277,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _buildAvatar(),
               const SizedBox(height: 32),
               _buildForm(),
+              const SizedBox(height: 16),
+              _buildRemindersCard(),
               const SizedBox(height: 24),
               _buildSaveButton(),
               const SizedBox(height: 16),
@@ -411,6 +484,93 @@ class _ProfileScreenState extends State<ProfileScreen> {
           contentPadding:
           const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         ),
+      ),
+    );
+  }
+
+  Widget _buildRemindersCard() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A1A),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withOpacity(0.06)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Reminders',
+              style: GoogleFonts.bebasNeue(
+                  color: Colors.white, fontSize: 20, letterSpacing: 1)),
+          const SizedBox(height: 8),
+          _reminderRow(
+            icon: Icons.water_drop_outlined,
+            color: const Color(0xFF4285F4),
+            title: 'Water Reminders',
+            subtitle: 'Daily at 10:00 · 13:00 · 16:00 · 19:00',
+            value: _waterReminders,
+            onChanged: _toggleWaterReminders,
+          ),
+          Divider(color: Colors.white.withOpacity(0.06), height: 8),
+          _reminderRow(
+            icon: Icons.fitness_center,
+            color: AppTheme.primary,
+            title: 'Workout Reminder',
+            subtitle: 'Daily at 18:00',
+            value: _workoutReminders,
+            onChanged: _toggleWorkoutReminders,
+          ),
+        ],
+      ),
+    ).animate().fadeIn(delay: 350.ms, duration: 500.ms);
+  }
+
+  Widget _reminderRow({
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title,
+                    style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600)),
+                const SizedBox(height: 2),
+                Text(subtitle,
+                    style: GoogleFonts.inter(
+                        color: Colors.white38, fontSize: 11)),
+              ],
+            ),
+          ),
+          Switch(
+            value: value,
+            onChanged: onChanged,
+            activeColor: AppTheme.primary,
+            inactiveThumbColor: Colors.white54,
+            inactiveTrackColor: Colors.white.withOpacity(0.1),
+          ),
+        ],
       ),
     );
   }

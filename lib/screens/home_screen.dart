@@ -16,6 +16,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late AnimationController _ringController;
   String _userName = 'Athlete';
   String? _avatarUrl;
+  List<Map<String, dynamic>> _todayExercises = [];
 
   final List<Map<String, dynamic>> _activities = [
     {
@@ -64,7 +65,36 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       duration: const Duration(seconds: 2),
     )..forward();
     _loadUser();
+    _loadExercises();
     _startQuoteTimer();
+  }
+
+  Future<void> _loadExercises() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+    try {
+      final data = await Supabase.instance.client
+          .from('workout_exercises')
+          .select()
+          .eq('user_id', user.id)
+          .order('created_at');
+      if (mounted) {
+        setState(() =>
+            _todayExercises = List<Map<String, dynamic>>.from(data));
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _toggleExercise(Map<String, dynamic> exercise) async {
+    final newValue = !(exercise['is_done'] as bool? ?? false);
+    setState(() => exercise['is_done'] = newValue);
+    try {
+      await Supabase.instance.client
+          .from('workout_exercises')
+          .update({'is_done': newValue}).eq('id', exercise['id']);
+    } catch (_) {
+      if (mounted) setState(() => exercise['is_done'] = !newValue);
+    }
   }
 
   Future<void> _loadUser() async {
@@ -638,13 +668,28 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   // ─── TODAY'S WORKOUT ──────────────────────────────────────
+  IconData _groupIcon(String? group) {
+    switch (group) {
+      case 'Back':
+        return Icons.sports_gymnastics;
+      case 'Legs':
+        return Icons.directions_run;
+      case 'Shoulders':
+        return Icons.sports_handball;
+      case 'Arms':
+        return Icons.sports_mma;
+      case 'Core':
+        return Icons.self_improvement;
+      case 'Cardio':
+        return Icons.favorite;
+      default:
+        return Icons.fitness_center;
+    }
+  }
+
   Widget _buildTodayWorkout() {
-    final workouts = [
-      {'name': 'Bench Press', 'sets': '4×8', 'icon': Icons.fitness_center, 'done': true},
-      {'name': 'Pull-Ups', 'sets': '3×10', 'icon': Icons.sports_gymnastics, 'done': true},
-      {'name': 'Squat', 'sets': '4×10', 'icon': Icons.directions_run, 'done': false},
-      {'name': 'Plank', 'sets': '3×60s', 'icon': Icons.self_improvement, 'done': false},
-    ];
+    final doneCount =
+        _todayExercises.where((e) => e['is_done'] as bool? ?? false).length;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -664,70 +709,102 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       color: Colors.white,
                       fontSize: 20,
                       letterSpacing: 1)),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppTheme.primary.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(20),
+              GestureDetector(
+                onTap: () => context.go('/workout-plan'),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                      _todayExercises.isEmpty
+                          ? 'Add Plan'
+                          : '$doneCount/${_todayExercises.length} done',
+                      style: GoogleFonts.inter(
+                          color: AppTheme.primary,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600)),
                 ),
-                child: Text('2/4 done',
-                    style: GoogleFonts.inter(
-                        color: AppTheme.primary,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600)),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          ...workouts.map((w) => Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: (w['done'] as bool)
-                        ? AppTheme.primary.withOpacity(0.15)
-                        : Colors.white.withOpacity(0.05),
-                    borderRadius: BorderRadius.circular(12),
+          if (_todayExercises.isEmpty)
+            GestureDetector(
+              onTap: () => context.go('/workout-plan'),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Column(
+                  children: [
+                    const Icon(Icons.add_circle_outline_rounded,
+                        color: Colors.white24, size: 36),
+                    const SizedBox(height: 8),
+                    Text('No plan yet — tap to create one',
+                        style: GoogleFonts.inter(
+                            color: Colors.white38, fontSize: 13)),
+                  ],
+                ),
+              ),
+            )
+          else
+            ..._todayExercises.map((w) {
+              final done = w['is_done'] as bool? ?? false;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: GestureDetector(
+                  onTap: () => _toggleExercise(w),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: done
+                              ? AppTheme.primary.withOpacity(0.15)
+                              : Colors.white.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          _groupIcon(w['muscle_group'] as String?),
+                          color:
+                              done ? AppTheme.primary : Colors.white30,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(w['name'] as String? ?? '',
+                            style: GoogleFonts.inter(
+                              color:
+                                  done ? Colors.white54 : Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              decoration: done
+                                  ? TextDecoration.lineThrough
+                                  : null,
+                            )),
+                      ),
+                      Text('${w['sets'] ?? 0}×${w['reps'] ?? 0}',
+                          style: GoogleFonts.inter(
+                              color: Colors.white38, fontSize: 12)),
+                      const SizedBox(width: 12),
+                      Icon(
+                        done
+                            ? Icons.check_circle_rounded
+                            : Icons.radio_button_unchecked_rounded,
+                        color: done
+                            ? AppTheme.primary
+                            : Colors.white.withOpacity(0.2),
+                        size: 20,
+                      ),
+                    ],
                   ),
-                  child: Icon(
-                    w['icon'] as IconData,
-                    color: (w['done'] as bool)
-                        ? AppTheme.primary
-                        : Colors.white30,
-                    size: 20,
-                  ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(w['name'] as String,
-                      style: GoogleFonts.inter(
-                        color: (w['done'] as bool)
-                            ? Colors.white
-                            : Colors.white54,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      )),
-                ),
-                Text(w['sets'] as String,
-                    style: GoogleFonts.inter(
-                        color: Colors.white38, fontSize: 12)),
-                const SizedBox(width: 12),
-                Icon(
-                  (w['done'] as bool)
-                      ? Icons.check_circle_rounded
-                      : Icons.radio_button_unchecked_rounded,
-                  color: (w['done'] as bool)
-                      ? AppTheme.primary
-                      : Colors.white.withOpacity(0.2),
-                  size: 20,
-                ),
-              ],
-            ),
-          )),
+              );
+            }),
         ],
       ),
     ).animate().fadeIn(delay: 550.ms, duration: 600.ms);
@@ -798,24 +875,27 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             onTap: () => context.go('/stats'),
             child: _navItem(Icons.bar_chart_rounded, 'Stats', false),
           ),
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [AppTheme.primary, Color(0xFFFF8C42)],
-              ),
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: AppTheme.primary.withOpacity(0.4),
-                  blurRadius: 16,
-                  spreadRadius: 2,
+          GestureDetector(
+            onTap: () => context.go('/workout-plan'),
+            child: Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [AppTheme.primary, Color(0xFFFF8C42)],
                 ),
-              ],
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primary.withOpacity(0.4),
+                    blurRadius: 16,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+              child: const Icon(Icons.fitness_center,
+                  color: Colors.white, size: 24),
             ),
-            child: const Icon(Icons.add_rounded,
-                color: Colors.white, size: 28),
           ),
           GestureDetector(
             onTap: () => context.go('/nutrition'),

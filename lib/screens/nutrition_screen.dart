@@ -839,24 +839,27 @@ class _NutritionScreenState extends State<NutritionScreen>
             onTap: () => context.go('/stats'),
             child: _navItem(Icons.bar_chart_rounded, 'Stats', false),
           ),
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [AppTheme.primary, Color(0xFFFF8C42)],
-              ),
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: AppTheme.primary.withOpacity(0.4),
-                  blurRadius: 16,
-                  spreadRadius: 2,
+          GestureDetector(
+            onTap: () => context.go('/workout-plan'),
+            child: Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [AppTheme.primary, Color(0xFFFF8C42)],
                 ),
-              ],
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primary.withOpacity(0.4),
+                    blurRadius: 16,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+              child: const Icon(Icons.fitness_center,
+                  color: Colors.white, size: 24),
             ),
-            child: const Icon(Icons.add_rounded,
-                color: Colors.white, size: 28),
           ),
           _navItem(Icons.restaurant_menu_rounded, 'Nutrition', true),
           GestureDetector(
