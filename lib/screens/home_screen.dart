@@ -102,9 +102,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     if (user == null) return;
 
     final name = user.userMetadata?['full_name'] as String? ??
-        user.email?.split('@').first ?? 'Athlete';
+        user.email?.split('@').first ??
+        'Athlete';
 
-    // Load profile from DB for avatar
     try {
       final data = await Supabase.instance.client
           .from('profiles')
@@ -157,7 +157,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0D0D0D),
+      backgroundColor: AppTheme.appBg,
       body: SafeArea(
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
@@ -166,19 +166,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 _buildHeader(),
                 const SizedBox(height: 24),
                 _buildActivitySection(),
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
                 _buildMetricsRow(),
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
                 _buildWeeklyProgress(),
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
                 _buildTodayWorkout(),
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
                 _buildQuoteBanner(),
-                const SizedBox(height: 32),
+                const SizedBox(height: 28),
               ],
             ),
           ),
@@ -188,204 +188,113 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
+  // ─── CARD WRAPPER ─────────────────────────────────────────
+  BoxDecoration _cardDecoration() => BoxDecoration(
+        color: AppTheme.card,
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(color: AppTheme.hairline),
+        boxShadow: AppTheme.cardShadow,
+      );
+
   // ─── HEADER ───────────────────────────────────────────────
   Widget _buildHeader() {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.calendar_today,
-                    color: Colors.white38, size: 12),
-                const SizedBox(width: 4),
-                Text(_getFormattedDate(),
-                    style: GoogleFonts.inter(
-                        color: Colors.white38,
-                        fontSize: 11,
-                        letterSpacing: 1)),
-              ],
-            ),
-            const SizedBox(height: 6),
-            RichText(
-              text: TextSpan(
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 children: [
-                  TextSpan(
-                    text: '${_getGreeting()}, ',
-                    style: GoogleFonts.inter(
-                        color: Colors.white60,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w400),
-                  ),
-                  TextSpan(
-                    text: '$_userName!',
-                    style: GoogleFonts.bebasNeue(
-                        color: Colors.white,
-                        fontSize: 22,
-                        letterSpacing: 1),
-                  ),
+                  const Icon(Icons.calendar_today_rounded,
+                      color: AppTheme.textFaint, size: 12),
+                  const SizedBox(width: 5),
+                  Text(_getFormattedDate(),
+                      style: GoogleFonts.inter(
+                          color: AppTheme.textFaint,
+                          fontSize: 11,
+                          letterSpacing: 1,
+                          fontWeight: FontWeight.w500)),
                 ],
               ),
-            ),
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primary.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                        color: AppTheme.primary.withOpacity(0.4)),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.favorite,
-                          color: AppTheme.primary, size: 10),
-                      const SizedBox(width: 4),
-                      Text('88% Healthy',
-                          style: GoogleFonts.inter(
-                              color: AppTheme.primary,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600)),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                        color: Colors.blue.withOpacity(0.4)),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.star,
-                          color: Colors.blue, size: 10),
-                      const SizedBox(width: 4),
-                      Text('Pro',
-                          style: GoogleFonts.inter(
-                              color: Colors.blue,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ],
+              const SizedBox(height: 6),
+              Text(_getGreeting(),
+                  style: GoogleFonts.inter(
+                      color: AppTheme.textMuted,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500)),
+              Text('$_userName 👋',
+                  style: GoogleFonts.bebasNeue(
+                      color: AppTheme.ink, fontSize: 30, letterSpacing: 1)),
+            ],
+          ),
         ),
-
-        // Feed + Notification + Avatar
-        Row(
-          children: [
-            GestureDetector(
-              onTap: () => context.go('/feed'),
-              child: Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.05),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white12),
-                ),
-                child: const Icon(Icons.dynamic_feed_outlined,
-                    color: Colors.white60, size: 18),
-              ),
+        _circleButton(
+          icon: Icons.dynamic_feed_outlined,
+          onTap: () => context.go('/feed'),
+        ),
+        const SizedBox(width: 10),
+        GestureDetector(
+          onTap: () => context.go('/profile'),
+          child: Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppTheme.lime,
+              border: Border.all(color: AppTheme.ink, width: 2),
             ),
-            const SizedBox(width: 10),
-            Stack(
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.05),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white12),
-                  ),
-                  child: const Icon(Icons.notifications_outlined,
-                      color: Colors.white60, size: 18),
-                ),
-                Positioned(
-                  right: 0,
-                  top: 0,
-                  child: Container(
-                    width: 14,
-                    height: 14,
-                    decoration: BoxDecoration(
-                      color: AppTheme.primary,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                          color: const Color(0xFF0D0D0D), width: 2),
+            child: _avatarUrl != null
+                ? ClipOval(
+                    child: Image.network(
+                      _avatarUrl!,
+                      fit: BoxFit.cover,
+                      width: 48,
+                      height: 48,
+                      errorBuilder: (_, __, ___) => _avatarFallback(),
                     ),
-                    child: Center(
-                      child: Text('3',
-                          style: GoogleFonts.inter(
-                              color: Colors.white,
-                              fontSize: 7,
-                              fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(width: 10),
-
-            // ← Аватарка кликабельная — переход в профиль
-            GestureDetector(
-              onTap: () => context.go('/profile'),
-              child: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: const LinearGradient(
-                    colors: [AppTheme.primary, Color(0xFFCC4400)],
-                  ),
-                ),
-                child: _avatarUrl != null
-                    ? ClipOval(
-                  child: Image.network(
-                    _avatarUrl!,
-                    fit: BoxFit.cover,
-                    width: 44,
-                    height: 44,
-                    errorBuilder: (_, __, ___) => _avatarFallback(),
-                  ),
-                )
-                    : _avatarFallback(),
-              ),
-            ),
-          ],
+                  )
+                : _avatarFallback(),
+          ),
         ),
       ],
     ).animate().fadeIn(duration: 600.ms).slideY(begin: -0.1);
+  }
+
+  Widget _circleButton({required IconData icon, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: AppTheme.card,
+          shape: BoxShape.circle,
+          border: Border.all(color: AppTheme.hairline),
+          boxShadow: AppTheme.cardShadow,
+        ),
+        child: Icon(icon, color: AppTheme.ink, size: 20),
+      ),
+    );
   }
 
   Widget _avatarFallback() {
     return Center(
       child: Text(
         _userName.isNotEmpty ? _userName[0].toUpperCase() : 'G',
-        style: GoogleFonts.bebasNeue(color: Colors.white, fontSize: 20),
+        style: GoogleFonts.bebasNeue(color: AppTheme.ink, fontSize: 22),
       ),
     );
   }
 
-  // ─── ACTIVITY RINGS ───────────────────────────────────────
+  // ─── ACTIVITY RINGS (dark card) ───────────────────────────
   Widget _buildActivitySection() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(0.06)),
+        color: AppTheme.ink,
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: AppTheme.cardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -393,18 +302,26 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Activity Rings',
+              Text('Today\'s Activity',
                   style: GoogleFonts.bebasNeue(
                       color: Colors.white,
-                      fontSize: 20,
+                      fontSize: 22,
                       letterSpacing: 1)),
               GestureDetector(
                 onTap: () => context.go('/stats'),
-                child: Text('See All',
-                    style: GoogleFonts.inter(
-                        color: AppTheme.primary,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600)),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppTheme.lime,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text('See All',
+                      style: GoogleFonts.inter(
+                          color: AppTheme.ink,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700)),
+                ),
               ),
             ],
           ),
@@ -416,8 +333,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 height: 110,
                 child: Stack(
                   alignment: Alignment.center,
-                  children: _activities.asMap().entries.map((entry) {
-                    final act = entry.value;
+                  children: _activities.map((act) {
                     final size = act['size'] as double;
                     return SizedBox(
                       width: size * 1.22,
@@ -427,10 +343,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         builder: (_, __) => CustomPaint(
                           painter: _RingPainter(
                             progress: (_ringController.value *
-                                (act['progress'] as double))
+                                    (act['progress'] as double))
                                 .clamp(0.0, 1.0),
                             color: act['color'] as Color,
-                            strokeWidth: 8,
+                            strokeWidth: 9,
                           ),
                         ),
                       ),
@@ -460,7 +376,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               const SizedBox(width: 8),
                               Text(act['label'] as String,
                                   style: GoogleFonts.inter(
-                                      color: Colors.white54,
+                                      color: Colors.white60,
                                       fontSize: 11,
                                       fontWeight: FontWeight.w600,
                                       letterSpacing: 1)),
@@ -471,9 +387,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               children: [
                                 TextSpan(
                                   text:
-                                  '${act['current']}/${act['target']}',
+                                      '${act['current']}/${act['target']}',
                                   style: GoogleFonts.inter(
-                                    color: act['color'] as Color,
+                                    color: Colors.white,
                                     fontSize: 13,
                                     fontWeight: FontWeight.w700,
                                   ),
@@ -506,20 +422,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       children: [
         Expanded(
           child: _buildMetricCard(
-            label: 'Score',
+            label: 'Fitness Score',
             value: '88%',
             icon: Icons.bar_chart_rounded,
-            color: AppTheme.primary,
-            subtitle: 'Fitness',
+            bg: AppTheme.lime,
+            subtitle: 'This week',
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 14),
         Expanded(
           child: _buildMetricCard(
             label: 'Hydration',
             value: '781 ml',
             icon: Icons.water_drop_outlined,
-            color: const Color(0xFF4285F4),
+            bg: AppTheme.lavender,
             subtitle: 'Today',
           ),
         ),
@@ -531,15 +447,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     required String label,
     required String value,
     required IconData icon,
-    required Color color,
+    required Color bg,
     required String subtitle,
   }) {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.25)),
+        color: bg,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: AppTheme.cardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -547,12 +463,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(label,
-                  style: GoogleFonts.inter(
-                      color: Colors.white70,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600)),
-              Icon(icon, color: color, size: 18),
+              Expanded(
+                child: Text(label,
+                    style: GoogleFonts.inter(
+                        color: AppTheme.ink,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600)),
+              ),
+              Icon(icon, color: AppTheme.ink, size: 18),
             ],
           ),
           const SizedBox(height: 16),
@@ -568,8 +486,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     builder: (_, __) => Container(
                       height: 32 * heights[i] * _ringController.value,
                       decoration: BoxDecoration(
-                        color: color.withOpacity(
-                            0.5 + heights[i] * 0.5),
+                        color: AppTheme.ink
+                            .withOpacity(0.25 + heights[i] * 0.45),
                         borderRadius: BorderRadius.circular(3),
                       ),
                     ),
@@ -578,15 +496,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               );
             }),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           Text(value,
               style: GoogleFonts.bebasNeue(
-                  color: Colors.white,
-                  fontSize: 26,
-                  letterSpacing: 1)),
+                  color: AppTheme.ink, fontSize: 28, letterSpacing: 1)),
           Text(subtitle,
               style: GoogleFonts.inter(
-                  color: Colors.white38, fontSize: 10)),
+                  color: AppTheme.ink.withOpacity(0.55), fontSize: 10)),
         ],
       ),
     );
@@ -599,20 +515,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final today = DateTime.now().weekday - 1;
 
     return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(0.06)),
-      ),
+      padding: const EdgeInsets.all(22),
+      decoration: _cardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('Weekly Progress',
               style: GoogleFonts.bebasNeue(
-                  color: Colors.white,
-                  fontSize: 20,
-                  letterSpacing: 1)),
+                  color: AppTheme.ink, fontSize: 22, letterSpacing: 1)),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -624,40 +534,23 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   AnimatedBuilder(
                     animation: _ringController,
                     builder: (_, __) => Container(
-                      width: 32,
-                      height: 50,
+                      width: 30,
+                      height: 56,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(16),
-                        color: Colors.white.withOpacity(0.05),
+                        color: AppTheme.appBg,
                       ),
                       alignment: Alignment.bottomCenter,
                       child: Container(
-                        width: 32,
-                        height: 50 *
-                            values[i] *
-                            _ringController.value,
+                        width: 30,
+                        height: 56 * values[i] * _ringController.value,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(16),
-                          gradient: LinearGradient(
-                            begin: Alignment.bottomCenter,
-                            end: Alignment.topCenter,
-                            colors: isToday
-                                ? [
-                              AppTheme.primary,
-                              const Color(0xFFFF8C42)
-                            ]
-                                : isDone
-                                ? [
-                              AppTheme.primary
-                                  .withOpacity(0.5),
-                              AppTheme.primary
-                                  .withOpacity(0.3)
-                            ]
-                                : [
-                              Colors.transparent,
-                              Colors.transparent
-                            ],
-                          ),
+                          color: isToday
+                              ? AppTheme.lime
+                              : isDone
+                                  ? AppTheme.ink
+                                  : Colors.transparent,
                         ),
                       ),
                     ),
@@ -665,13 +558,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   const SizedBox(height: 8),
                   Text(days[i],
                       style: GoogleFonts.inter(
-                        color: isToday
-                            ? AppTheme.primary
-                            : Colors.white38,
+                        color: isToday ? AppTheme.ink : AppTheme.textFaint,
                         fontSize: 12,
-                        fontWeight: isToday
-                            ? FontWeight.w700
-                            : FontWeight.w400,
+                        fontWeight:
+                            isToday ? FontWeight.w700 : FontWeight.w400,
                       )),
                 ],
               );
@@ -707,12 +597,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         _todayExercises.where((e) => e['is_done'] as bool? ?? false).length;
 
     return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(0.06)),
-      ),
+      padding: const EdgeInsets.all(22),
+      decoration: _cardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -721,16 +607,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             children: [
               Text("Today's Workout",
                   style: GoogleFonts.bebasNeue(
-                      color: Colors.white,
-                      fontSize: 20,
-                      letterSpacing: 1)),
+                      color: AppTheme.ink, fontSize: 22, letterSpacing: 1)),
               GestureDetector(
                 onTap: () => context.go('/workout-plan'),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 4),
+                      horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: AppTheme.primary.withOpacity(0.15),
+                    color: AppTheme.lavender,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -738,14 +622,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           ? 'Add Plan'
                           : '$doneCount/${_todayExercises.length} done',
                       style: GoogleFonts.inter(
-                          color: AppTheme.primary,
+                          color: AppTheme.ink,
                           fontSize: 11,
-                          fontWeight: FontWeight.w600)),
+                          fontWeight: FontWeight.w700)),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           if (_todayExercises.isEmpty)
             GestureDetector(
               onTap: () => context.go('/workout-plan'),
@@ -755,11 +639,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 child: Column(
                   children: [
                     const Icon(Icons.add_circle_outline_rounded,
-                        color: Colors.white24, size: 36),
+                        color: AppTheme.textFaint, size: 36),
                     const SizedBox(height: 8),
                     Text('No plan yet — tap to create one',
                         style: GoogleFonts.inter(
-                            color: Colors.white38, fontSize: 13)),
+                            color: AppTheme.textMuted, fontSize: 13)),
                   ],
                 ),
               ),
@@ -771,21 +655,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 padding: const EdgeInsets.only(bottom: 10),
                 child: GestureDetector(
                   onTap: () => _toggleExercise(w),
+                  behavior: HitTestBehavior.opaque,
                   child: Row(
                     children: [
                       Container(
-                        width: 40,
-                        height: 40,
+                        width: 42,
+                        height: 42,
                         decoration: BoxDecoration(
-                          color: done
-                              ? AppTheme.primary.withOpacity(0.15)
-                              : Colors.white.withOpacity(0.05),
-                          borderRadius: BorderRadius.circular(12),
+                          color: done ? AppTheme.lime : AppTheme.appBg,
+                          borderRadius: BorderRadius.circular(13),
                         ),
                         child: Icon(
                           _groupIcon(w['muscle_group'] as String?),
-                          color:
-                              done ? AppTheme.primary : Colors.white30,
+                          color: done ? AppTheme.ink : AppTheme.textFaint,
                           size: 20,
                         ),
                       ),
@@ -794,7 +676,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         child: Text(w['name'] as String? ?? '',
                             style: GoogleFonts.inter(
                               color:
-                                  done ? Colors.white54 : Colors.white,
+                                  done ? AppTheme.textFaint : AppTheme.ink,
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                               decoration: done
@@ -804,16 +686,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       ),
                       Text('${w['sets'] ?? 0}×${w['reps'] ?? 0}',
                           style: GoogleFonts.inter(
-                              color: Colors.white38, fontSize: 12)),
+                              color: AppTheme.textFaint, fontSize: 12)),
                       const SizedBox(width: 12),
                       Icon(
                         done
                             ? Icons.check_circle_rounded
                             : Icons.radio_button_unchecked_rounded,
-                        color: done
-                            ? AppTheme.primary
-                            : Colors.white.withOpacity(0.2),
-                        size: 20,
+                        color: done ? AppTheme.limeDeep : AppTheme.hairline,
+                        size: 22,
                       ),
                     ],
                   ),
@@ -825,7 +705,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     ).animate().fadeIn(delay: 550.ms, duration: 600.ms);
   }
 
-  // ─── QUOTE BANNER ─────────────────────────────────────────
+  // ─── QUOTE BANNER (dark card) ─────────────────────────────
   Widget _buildQuoteBanner() {
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 800),
@@ -834,23 +714,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       child: Container(
         key: ValueKey(_quoteIndex),
         width: double.infinity,
-        padding:
-        const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 24),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              AppTheme.primary.withOpacity(0.15),
-              const Color(0xFFFF8C42).withOpacity(0.08),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-              color: AppTheme.primary.withOpacity(0.25), width: 1),
+          color: AppTheme.ink,
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: AppTheme.cardShadow,
         ),
         child: Column(
           children: [
             const Icon(Icons.format_quote_rounded,
-                color: AppTheme.primary, size: 28),
+                color: AppTheme.lime, size: 30),
             const SizedBox(height: 8),
             Text(
               _quotes[_quoteIndex],
@@ -864,9 +737,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             const SizedBox(height: 6),
             Text('Daily Motivation',
                 style: GoogleFonts.inter(
-                    color: AppTheme.primary.withOpacity(0.7),
+                    color: AppTheme.lime,
                     fontSize: 11,
-                    letterSpacing: 2)),
+                    letterSpacing: 2,
+                    fontWeight: FontWeight.w600)),
           ],
         ),
       ),
@@ -878,9 +752,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF141414),
-        border: Border(
-            top: BorderSide(color: Colors.white.withOpacity(0.06))),
+        color: AppTheme.card,
+        border: Border(top: BorderSide(color: AppTheme.hairline)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 16,
+            offset: const Offset(0, -4),
+          ),
+        ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -893,23 +773,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           GestureDetector(
             onTap: () => context.go('/workout-plan'),
             child: Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppTheme.primary, Color(0xFFFF8C42)],
-                ),
+              width: 54,
+              height: 54,
+              decoration: const BoxDecoration(
+                color: AppTheme.ink,
                 shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: AppTheme.primary.withOpacity(0.4),
-                    blurRadius: 16,
-                    spreadRadius: 2,
-                  ),
-                ],
               ),
               child: const Icon(Icons.fitness_center,
-                  color: Colors.white, size: 24),
+                  color: AppTheme.lime, size: 24),
             ),
           ),
           GestureDetector(
@@ -932,15 +803,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(icon,
-            color: active ? AppTheme.primary : Colors.white30,
-            size: 24),
-        const SizedBox(height: 2),
+            color: active ? AppTheme.ink : AppTheme.textFaint, size: 24),
+        const SizedBox(height: 3),
         Text(label,
             style: GoogleFonts.inter(
-              color: active ? AppTheme.primary : Colors.white30,
+              color: active ? AppTheme.ink : AppTheme.textFaint,
               fontSize: 10,
-              fontWeight:
-              active ? FontWeight.w700 : FontWeight.w400,
+              fontWeight: active ? FontWeight.w700 : FontWeight.w400,
             )),
       ],
     );
@@ -965,7 +834,7 @@ class _RingPainter extends CustomPainter {
     final radius = (size.width - strokeWidth) / 2;
 
     final bgPaint = Paint()
-      ..color = color.withOpacity(0.12)
+      ..color = color.withOpacity(0.18)
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round;
