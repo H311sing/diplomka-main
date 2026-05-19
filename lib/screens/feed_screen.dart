@@ -1,4 +1,4 @@
-  import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -203,6 +203,21 @@ class _FeedScreenState extends State<FeedScreen> {
           ],
         ),
         const Spacer(),
+        GestureDetector(
+          onTap: () => context.go('/challenges'),
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: AppTheme.primary.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppTheme.primary.withOpacity(0.3)),
+            ),
+            child: const Icon(Icons.emoji_events_outlined,
+                color: AppTheme.primary, size: 20),
+          ),
+        ),
+        const SizedBox(width: 10),
         GestureDetector(
           onTap: () => context.go('/friends'),
           child: Container(
