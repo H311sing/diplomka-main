@@ -176,7 +176,12 @@ class _DockItem extends StatelessWidget {
             duration: const Duration(milliseconds: 220),
             curve: Curves.easeOutBack,
             tween: Tween(begin: 0, end: isHovered ? 1.0 : 0.0),
-            builder: (_, t, __) {
+            builder: (_, rawT, __) {
+              // easeOutBack overshoots and dips below 0 on the way back;
+              // the raw value is fine for transforms but MUST be clamped
+              // before reaching opacity / blurRadius (Flutter asserts 0..1).
+              final t = rawT;
+              final tc = rawT.clamp(0.0, 1.0);
               final scale = 1 + 0.22 * t;
               final rotate = -0.07 * t;
               final lift = -8 * t;
@@ -197,19 +202,19 @@ class _DockItem extends StatelessWidget {
                             height: 48,
                             decoration: BoxDecoration(
                               color: AppTheme.primary.withOpacity(
-                                  (isActive ? 0.14 : 0.0) + 0.10 * t),
+                                  (isActive ? 0.14 : 0.0) + 0.10 * tc),
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
                                 color: AppTheme.primary
-                                    .withOpacity(0.45 * t),
+                                    .withOpacity(0.45 * tc),
                                 width: 1,
                               ),
-                              boxShadow: t > 0
+                              boxShadow: tc > 0
                                   ? [
                                       BoxShadow(
                                         color: AppTheme.primary
-                                            .withOpacity(0.35 * t),
-                                        blurRadius: 18 * t,
+                                            .withOpacity(0.35 * tc),
+                                        blurRadius: 18 * tc,
                                         spreadRadius: 1,
                                       ),
                                     ]
