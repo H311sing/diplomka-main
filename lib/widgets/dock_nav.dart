@@ -89,7 +89,11 @@ class _DockNavState extends State<DockNav>
       minimum: const EdgeInsets.only(bottom: 8),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+        // heightFactor: 1.0 keeps the dock the height of its content;
+        // without it Center expands to fill the bottomNavigationBar slot
+        // and pushes the body off-screen.
         child: Center(
+          heightFactor: 1.0,
           child: AnimatedBuilder(
             animation: _floatCtrl,
             builder: (_, child) {
