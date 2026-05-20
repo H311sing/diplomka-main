@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/theme.dart';
+import '../widgets/dock_nav.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -184,7 +185,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
         ),
       ),
-      bottomNavigationBar: _buildBottomNav(),
+      bottomNavigationBar: DockNav(
+        items: DockNav.defaultItems(context),
+        activeIndex: 0,
+      ),
     );
   }
 
@@ -873,78 +877,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     ).animate().fadeIn(delay: 650.ms, duration: 600.ms);
   }
 
-  // ─── BOTTOM NAV ───────────────────────────────────────────
-  Widget _buildBottomNav() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF141414),
-        border: Border(
-            top: BorderSide(color: Colors.white.withOpacity(0.06))),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          _navItem(Icons.home_rounded, 'Home', true),
-          GestureDetector(
-            onTap: () => context.go('/stats'),
-            child: _navItem(Icons.bar_chart_rounded, 'Stats', false),
-          ),
-          GestureDetector(
-            onTap: () => context.go('/workout-plan'),
-            child: Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppTheme.primary, Color(0xFFFF8C42)],
-                ),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: AppTheme.primary.withOpacity(0.4),
-                    blurRadius: 16,
-                    spreadRadius: 2,
-                  ),
-                ],
-              ),
-              child: const Icon(Icons.fitness_center,
-                  color: Colors.white, size: 24),
-            ),
-          ),
-          GestureDetector(
-            onTap: () => context.go('/nutrition'),
-            child: _navItem(
-                Icons.restaurant_menu_rounded, 'Nutrition', false),
-          ),
-          GestureDetector(
-            onTap: () => context.go('/profile'),
-            child: _navItem(
-                Icons.person_outline_rounded, 'Profile', false),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _navItem(IconData icon, String label, bool active) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon,
-            color: active ? AppTheme.primary : Colors.white30,
-            size: 24),
-        const SizedBox(height: 2),
-        Text(label,
-            style: GoogleFonts.inter(
-              color: active ? AppTheme.primary : Colors.white30,
-              fontSize: 10,
-              fontWeight:
-              active ? FontWeight.w700 : FontWeight.w400,
-            )),
-      ],
-    );
-  }
 }
 
 // ─── RING PAINTER ─────────────────────────────────────────────
