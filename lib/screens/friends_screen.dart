@@ -6,7 +6,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/theme.dart';
 
 class FriendsScreen extends StatefulWidget {
-  const FriendsScreen({super.key});
+  final int initialTab;
+  const FriendsScreen({super.key, this.initialTab = 0});
 
   @override
   State<FriendsScreen> createState() => _FriendsScreenState();
@@ -30,6 +31,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
   void initState() {
     super.initState();
     _uid = _supabase.auth.currentUser?.id ?? '';
+    _tab = widget.initialTab.clamp(0, _tabs.length - 1);
     _loadFriendships();
   }
 

@@ -18,6 +18,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   String _userName = 'Athlete';
   String? _avatarUrl;
   List<Map<String, dynamic>> _todayExercises = [];
+  int _pendingRequests = 0;
+  RealtimeChannel? _reqChannel;
 
   final List<Map<String, dynamic>> _activities = [
     {
@@ -67,7 +69,41 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     )..forward();
     _loadUser();
     _loadExercises();
+    _loadRequests();
     _startQuoteTimer();
+  }
+
+  Future<void> _loadRequests() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+    await _refreshRequestCount(user.id);
+    _subscribeRequests(user.id);
+  }
+
+  Future<void> _refreshRequestCount(String uid) async {
+    try {
+      final data = await Supabase.instance.client
+          .from('friendships')
+          .select('id')
+          .eq('addressee_id', uid)
+          .eq('status', 'pending');
+      if (mounted) {
+        setState(() => _pendingRequests = (data as List).length);
+      }
+    } catch (_) {}
+  }
+
+  void _subscribeRequests(String uid) {
+    if (_reqChannel != null) return;
+    _reqChannel = Supabase.instance.client
+        .channel('friend_requests:$uid')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'friendships',
+          callback: (_) => _refreshRequestCount(uid),
+        )
+        .subscribe();
   }
 
   Future<void> _loadExercises() async {
@@ -135,6 +171,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    if (_reqChannel != null) {
+      Supabase.instance.client.removeChannel(_reqChannel!);
+    }
     _ringController.dispose();
     super.dispose();
   }
@@ -304,41 +343,50 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ),
             ),
             const SizedBox(width: 10),
-            Stack(
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.05),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white12),
-                  ),
-                  child: const Icon(Icons.notifications_outlined,
-                      color: Colors.white60, size: 18),
-                ),
-                Positioned(
-                  right: 0,
-                  top: 0,
-                  child: Container(
-                    width: 14,
-                    height: 14,
+            GestureDetector(
+              onTap: () => context.go('/friends', extra: 1),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
                     decoration: BoxDecoration(
-                      color: AppTheme.primary,
+                      color: Colors.white.withOpacity(0.05),
                       shape: BoxShape.circle,
-                      border: Border.all(
-                          color: const Color(0xFF0D0D0D), width: 2),
+                      border: Border.all(color: Colors.white12),
                     ),
-                    child: Center(
-                      child: Text('3',
-                          style: GoogleFonts.inter(
-                              color: Colors.white,
-                              fontSize: 7,
-                              fontWeight: FontWeight.bold)),
-                    ),
+                    child: const Icon(Icons.notifications_outlined,
+                        color: Colors.white60, size: 18),
                   ),
-                ),
-              ],
+                  if (_pendingRequests > 0)
+                    Positioned(
+                      right: -3,
+                      top: -3,
+                      child: Container(
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 4),
+                        constraints: const BoxConstraints(
+                            minWidth: 16, minHeight: 16),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                              color: const Color(0xFF0D0D0D), width: 2),
+                        ),
+                        child: Center(
+                          child: Text(
+                            _pendingRequests > 9 ? '9+' : '$_pendingRequests',
+                            style: GoogleFonts.inter(
+                                color: Colors.white,
+                                fontSize: 8,
+                                fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
             const SizedBox(width: 10),
 

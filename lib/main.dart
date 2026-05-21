@@ -42,7 +42,12 @@ final _router = GoRouter(
     GoRoute(path: '/nutrition', builder: (_, __) => const NutritionScreen()),
     GoRoute(
         path: '/workout-plan', builder: (_, __) => const WorkoutPlanScreen()),
-    GoRoute(path: '/friends', builder: (_, __) => const FriendsScreen()),
+    GoRoute(
+      path: '/friends',
+      builder: (_, state) => FriendsScreen(
+        initialTab: state.extra is int ? state.extra as int : 0,
+      ),
+    ),
     GoRoute(path: '/feed', builder: (_, __) => const FeedScreen()),
     GoRoute(
         path: '/challenges', builder: (_, __) => const ChallengesScreen()),
