@@ -16,6 +16,7 @@ import 'screens/friends_screen.dart';
 import 'screens/feed_screen.dart';
 import 'screens/challenges_screen.dart';
 import 'screens/chat_screen.dart';
+import 'screens/recommendations_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -59,6 +60,9 @@ final _router = GoRouter(
         return ChatScreen(friend: friend);
       },
     ),
+    GoRoute(
+        path: '/recommendations',
+        builder: (_, __) => const RecommendationsScreen()),
   ],
 );
 

@@ -208,6 +208,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               children: [
                 const SizedBox(height: 16),
                 _buildHeader(),
+                const SizedBox(height: 20),
+                _buildAiCoachCard(),
                 const SizedBox(height: 24),
                 _buildActivitySection(),
                 const SizedBox(height: 24),
@@ -428,6 +430,63 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         style: GoogleFonts.bebasNeue(color: Colors.white, fontSize: 20),
       ),
     );
+  }
+
+  // ─── AI COACH ─────────────────────────────────────────────
+  Widget _buildAiCoachCard() {
+    return GestureDetector(
+      onTap: () => context.go('/recommendations'),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [AppTheme.primary, Color(0xFFFF8C42)],
+          ),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.primary.withOpacity(0.35),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(Icons.auto_awesome,
+                  color: Colors.white, size: 24),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('AI Coach',
+                      style: GoogleFonts.bebasNeue(
+                          color: Colors.white,
+                          fontSize: 22,
+                          letterSpacing: 1)),
+                  Text('Personalized nutrition & workout tips',
+                      style: GoogleFonts.inter(
+                          color: Colors.white.withOpacity(0.85),
+                          fontSize: 12)),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_rounded,
+                color: Colors.white, size: 20),
+          ],
+        ),
+      ),
+    ).animate().fadeIn(delay: 100.ms, duration: 600.ms).slideY(begin: 0.1);
   }
 
   // ─── ACTIVITY RINGS ───────────────────────────────────────
