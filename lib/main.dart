@@ -15,6 +15,7 @@ import 'screens/workout_plan_screen.dart';
 import 'screens/friends_screen.dart';
 import 'screens/feed_screen.dart';
 import 'screens/challenges_screen.dart';
+import 'screens/chat_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,6 +46,14 @@ final _router = GoRouter(
     GoRoute(path: '/feed', builder: (_, __) => const FeedScreen()),
     GoRoute(
         path: '/challenges', builder: (_, __) => const ChallengesScreen()),
+    GoRoute(
+      path: '/chat',
+      builder: (_, state) {
+        final friend = state.extra as Map<String, dynamic>?;
+        if (friend == null) return const FriendsScreen();
+        return ChatScreen(friend: friend);
+      },
+    ),
   ],
 );
 

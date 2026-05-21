@@ -309,10 +309,26 @@ class _FriendsScreenState extends State<FriendsScreen> {
           final profile = _otherProfile(friendship);
           return _userTile(
             profile: profile,
-            trailing: _iconButton(
-              icon: Icons.person_remove_outlined,
-              color: Colors.red,
-              onTap: () => _removeFriendship(friendship['id'] as String),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _iconButton(
+                  icon: Icons.chat_bubble_outline_rounded,
+                  color: AppTheme.primary,
+                  onTap: () {
+                    if (profile != null) {
+                      context.push('/chat', extra: profile);
+                    }
+                  },
+                ),
+                const SizedBox(width: 8),
+                _iconButton(
+                  icon: Icons.person_remove_outlined,
+                  color: Colors.red,
+                  onTap: () =>
+                      _removeFriendship(friendship['id'] as String),
+                ),
+              ],
             ),
           ).animate().fadeIn(
               delay: Duration(milliseconds: i * 60), duration: 350.ms);
