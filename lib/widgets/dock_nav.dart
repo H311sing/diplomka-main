@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../core/theme.dart';
@@ -103,40 +102,32 @@ class _DockNavState extends State<DockNav>
                 child: child,
               );
             },
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(28),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.06),
-                    borderRadius: BorderRadius.circular(28),
-                    border:
-                        Border.all(color: Colors.white.withOpacity(0.10)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.5),
-                        blurRadius: 30,
-                        offset: const Offset(0, 14),
-                      ),
-                    ],
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1C1C1E),
+                borderRadius: BorderRadius.circular(28),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.45),
+                    blurRadius: 24,
+                    offset: const Offset(0, 10),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: List.generate(widget.items.length, (i) {
-                      return _DockItem(
-                        item: widget.items[i],
-                        isActive: i == widget.activeIndex,
-                        isHovered: _hovered == i,
-                        onHoverChange: (h) =>
-                            setState(() => _hovered = h ? i : null),
-                      );
-                    }),
-                  ),
-                ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: List.generate(widget.items.length, (i) {
+                  return _DockItem(
+                    item: widget.items[i],
+                    isActive: i == widget.activeIndex,
+                    isHovered: _hovered == i,
+                    onHoverChange: (h) =>
+                        setState(() => _hovered = h ? i : null),
+                  );
+                }),
               ),
             ),
           ),
