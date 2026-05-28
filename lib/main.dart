@@ -17,6 +17,7 @@ import 'screens/feed_screen.dart';
 import 'screens/challenges_screen.dart';
 import 'screens/chat_screen.dart';
 import 'screens/recommendations_screen.dart';
+import 'screens/pose_counter_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -63,6 +64,9 @@ final _router = GoRouter(
     GoRoute(
         path: '/recommendations',
         builder: (_, __) => const RecommendationsScreen()),
+    GoRoute(
+        path: '/pose-counter',
+        builder: (_, __) => const PoseCounterScreen()),
   ],
 );
 

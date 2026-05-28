@@ -210,6 +210,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 _buildHeader(),
                 const SizedBox(height: 20),
                 _buildAiCoachCard(),
+                const SizedBox(height: 12),
+                _buildRepCounterCard(),
                 const SizedBox(height: 24),
                 _buildActivitySection(),
                 const SizedBox(height: 24),
@@ -487,6 +489,63 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         ),
       ),
     ).animate().fadeIn(delay: 100.ms, duration: 600.ms).slideY(begin: 0.1);
+  }
+
+  // ─── REP COUNTER (camera) ─────────────────────────────────
+  Widget _buildRepCounterCard() {
+    return GestureDetector(
+      onTap: () => context.go('/pose-counter'),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFFE03250), Color(0xFFFF6B35)],
+          ),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFE03250).withOpacity(0.3),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(Icons.videocam_rounded,
+                  color: Colors.white, size: 24),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Rep Counter',
+                      style: GoogleFonts.bebasNeue(
+                          color: Colors.white,
+                          fontSize: 22,
+                          letterSpacing: 1)),
+                  Text('AI counts your push-ups via the camera',
+                      style: GoogleFonts.inter(
+                          color: Colors.white.withOpacity(0.85),
+                          fontSize: 12)),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_rounded,
+                color: Colors.white, size: 20),
+          ],
+        ),
+      ),
+    ).animate().fadeIn(delay: 150.ms, duration: 600.ms).slideY(begin: 0.1);
   }
 
   // ─── ACTIVITY RINGS ───────────────────────────────────────

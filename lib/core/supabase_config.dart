@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 class SupabaseConfig {
   /// Switch the whole app between backends.
   ///   false → hosted Supabase cloud project
@@ -12,11 +14,23 @@ class SupabaseConfig {
   // ── Local Docker (Supabase CLI) ────────────────────────────
   // The publishable key below is the shared default the Supabase CLI
   // prints on `supabase start` — it is a local dev key, not a secret.
-  // Web / desktop reach the stack at 127.0.0.1; an Android emulator must
-  // use 10.0.2.2 instead (it cannot see the host's localhost).
-  static const String _localUrl = 'http://127.0.0.1:54321';
   static const String _localAnonKey =
       'sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH';
+
+  /// LAN IP of the dev machine running `supabase start`.
+  /// Real Android phones reach the host over Wi-Fi via this IP.
+  /// The emulator can also use the LAN IP (Supabase binds to 0.0.0.0).
+  static const String _devLanIp = '192.168.1.100';
+
+  /// Local stack URL.
+  /// - Android (real phone or emulator) → dev machine's LAN IP.
+  /// - Web / desktop / iOS simulator → 127.0.0.1.
+  static String get _localUrl {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      return 'http://$_devLanIp:54321';
+    }
+    return 'http://127.0.0.1:54321';
+  }
 
   static String get supabaseUrl => useLocalDocker ? _localUrl : _cloudUrl;
   static String get supabaseAnonKey =>

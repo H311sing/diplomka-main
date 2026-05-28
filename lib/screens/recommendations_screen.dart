@@ -47,10 +47,22 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
         _exercises = _asList(data['exercises']);
         _loading = false;
       });
+    } on FunctionException catch (e) {
+      String detail = '';
+      final d = e.details;
+      if (d is Map && d['detail'] != null) {
+        detail = d['detail'].toString();
+      } else if (d != null) {
+        detail = d.toString();
+      }
+      setState(() {
+        _error = 'AI service error (HTTP ${e.status}).'
+            '${detail.isNotEmpty ? '\n\n$detail' : ''}';
+        _loading = false;
+      });
     } catch (e) {
       setState(() {
-        _error = 'Could not reach the AI service.\nIs the Edge Function '
-            'running and the Gemini key set?';
+        _error = 'Could not reach the AI service.\n$e';
         _loading = false;
       });
     }
@@ -186,33 +198,30 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
   }
 
   Widget _buildError() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.cloud_off_rounded,
-                color: Colors.white24, size: 56),
-            const SizedBox(height: 16),
-            Text(_error ?? 'Something went wrong',
-                textAlign: TextAlign.center,
-                style:
-                    GoogleFonts.inter(color: Colors.white54, fontSize: 14)),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _load,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primary,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
-              ),
-              child: Text('Retry',
-                  style: GoogleFonts.inter(
-                      color: Colors.white, fontWeight: FontWeight.w700)),
+    return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(28, 40, 28, 28),
+      child: Column(
+        children: [
+          const Icon(Icons.cloud_off_rounded,
+              color: Colors.white24, size: 56),
+          const SizedBox(height: 16),
+          SelectableText(_error ?? 'Something went wrong',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(color: Colors.white54, fontSize: 13)),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: _load,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primary,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14)),
             ),
-          ],
-        ),
+            child: Text('Retry',
+                style: GoogleFonts.inter(
+                    color: Colors.white, fontWeight: FontWeight.w700)),
+          ),
+        ],
       ),
     );
   }
