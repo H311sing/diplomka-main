@@ -21,35 +21,59 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   int _pendingRequests = 0;
   RealtimeChannel? _reqChannel;
 
-  final List<Map<String, dynamic>> _activities = [
-    {
-      'label': 'MOVE',
-      'current': 479,
-      'target': 800,
-      'unit': 'CAL',
-      'color': Color(0xFFFF2D55),
-      'progress': 0.85,
-      'size': 90.0,
-    },
-    {
-      'label': 'EXERCISE',
-      'current': 24,
-      'target': 30,
-      'unit': 'MIN',
-      'color': Color(0xFFA3F900),
-      'progress': 0.60,
-      'size': 70.0,
-    },
-    {
-      'label': 'STAND',
-      'current': 6,
-      'target': 12,
-      'unit': 'HR',
-      'color': Color(0xFF04C7DD),
-      'progress': 0.30,
-      'size': 50.0,
-    },
-  ];
+  // ── Real daily stats (Supabase) ──────────────────────────
+  int _todayCalories = 0; // burned today (workout_logs.calories_burned)
+  int _todayMinutes = 0; // workout minutes today
+  int _todayWaterMl = 0; // water consumed today
+  int _monthWorkouts = 0; // for level badge
+  List<int> _weekWorkoutMins = List.filled(7, 0); // last 7 days
+  List<int> _weekWaterMl = List.filled(7, 0); // last 7 days
+
+  // Daily targets (could later live in profile)
+  static const int _targetCals = 800;
+  static const int _targetMins = 30;
+  static const int _targetWaterMl = 2500;
+
+  double get _moveProgress =>
+      (_todayCalories / _targetCals).clamp(0.0, 1.0);
+  double get _exerciseProgress =>
+      (_todayMinutes / _targetMins).clamp(0.0, 1.0);
+  double get _hydrationProgress =>
+      (_todayWaterMl / _targetWaterMl).clamp(0.0, 1.0);
+  int get _scorePercent =>
+      (((_moveProgress + _exerciseProgress + _hydrationProgress) / 3) * 100)
+          .round();
+  int get _level => (_monthWorkouts / 10).floor() + 1;
+
+  List<Map<String, dynamic>> get _activities => [
+        {
+          'label': 'MOVE',
+          'current': _todayCalories,
+          'target': _targetCals,
+          'unit': 'CAL',
+          'color': const Color(0xFFFF2D55),
+          'progress': _moveProgress,
+          'size': 90.0,
+        },
+        {
+          'label': 'EXERCISE',
+          'current': _todayMinutes,
+          'target': _targetMins,
+          'unit': 'MIN',
+          'color': const Color(0xFFA3F900),
+          'progress': _exerciseProgress,
+          'size': 70.0,
+        },
+        {
+          'label': 'HYDRATE',
+          'current': _todayWaterMl,
+          'target': _targetWaterMl,
+          'unit': 'ML',
+          'color': const Color(0xFF04C7DD),
+          'progress': _hydrationProgress,
+          'size': 50.0,
+        },
+      ];
 
   final List<String> _quotes = [
     'NO PAIN, NO GAIN',
@@ -70,7 +94,88 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _loadUser();
     _loadExercises();
     _loadRequests();
+    _loadDailyStats();
     _startQuoteTimer();
+  }
+
+  Future<void> _loadDailyStats() async {
+    final supabase = Supabase.instance.client;
+    final user = supabase.auth.currentUser;
+    if (user == null) return;
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final todayStr = today.toIso8601String().split('T')[0];
+    final weekStart = today.subtract(const Duration(days: 6));
+    final weekStartStr = weekStart.toIso8601String().split('T')[0];
+    final monthStart =
+        DateTime(now.year, now.month, 1).toIso8601String().split('T')[0];
+
+    try {
+      final results = await Future.wait([
+        supabase
+            .from('workout_logs')
+            .select('duration_minutes, calories_burned, workout_date')
+            .eq('user_id', user.id)
+            .gte('workout_date', weekStartStr),
+        supabase
+            .from('water_logs')
+            .select('amount_ml, log_date')
+            .eq('user_id', user.id)
+            .gte('log_date', weekStartStr),
+        supabase
+            .from('workout_logs')
+            .select('id')
+            .eq('user_id', user.id)
+            .gte('workout_date', monthStart),
+      ]);
+
+      final workouts = results[0] as List;
+      final waters = results[1] as List;
+      final monthCount = (results[2] as List).length;
+
+      int todayCals = 0;
+      int todayMins = 0;
+      int todayWater = 0;
+      final weekMins = List<int>.filled(7, 0);
+      final weekWater = List<int>.filled(7, 0);
+
+      for (final w in workouts) {
+        final dStr = w['workout_date'] as String;
+        final d = DateTime.parse(dStr);
+        final daysAgo =
+            today.difference(DateTime(d.year, d.month, d.day)).inDays;
+        final idx = 6 - daysAgo;
+        final mins = (w['duration_minutes'] as num?)?.toInt() ?? 0;
+        final cals = (w['calories_burned'] as num?)?.toInt() ?? 0;
+        if (idx >= 0 && idx < 7) weekMins[idx] += mins;
+        if (dStr == todayStr) {
+          todayMins += mins;
+          todayCals += cals;
+        }
+      }
+      for (final wl in waters) {
+        final dStr = wl['log_date'] as String;
+        final d = DateTime.parse(dStr);
+        final daysAgo =
+            today.difference(DateTime(d.year, d.month, d.day)).inDays;
+        final idx = 6 - daysAgo;
+        final ml = (wl['amount_ml'] as num?)?.toInt() ?? 0;
+        if (idx >= 0 && idx < 7) weekWater[idx] += ml;
+        if (dStr == todayStr) todayWater += ml;
+      }
+
+      if (mounted) {
+        setState(() {
+          _todayCalories = todayCals;
+          _todayMinutes = todayMins;
+          _todayWaterMl = todayWater;
+          _monthWorkouts = monthCount;
+          _weekWorkoutMins = weekMins;
+          _weekWaterMl = weekWater;
+        });
+      }
+    } catch (_) {}
   }
 
   Future<void> _loadRequests() async {
@@ -293,7 +398,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       const Icon(Icons.favorite,
                           color: AppTheme.primary, size: 10),
                       const SizedBox(width: 4),
-                      Text('88% Healthy',
+                      Text('$_scorePercent% Today',
                           style: GoogleFonts.inter(
                               color: AppTheme.primary,
                               fontSize: 10,
@@ -316,7 +421,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       const Icon(Icons.star,
                           color: Colors.blue, size: 10),
                       const SizedBox(width: 4),
-                      Text('Pro',
+                      Text('Lv. $_level',
                           style: GoogleFonts.inter(
                               color: Colors.blue,
                               fontSize: 10,
@@ -672,25 +777,37 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   // ─── METRICS ROW ──────────────────────────────────────────
   Widget _buildMetricsRow() {
+    // Last 7 days as normalized 0..1 bars
+    final scoreBars = List<double>.generate(7, (i) {
+      final m = (_weekWorkoutMins[i] / _targetMins).clamp(0.0, 1.0);
+      final h = (_weekWaterMl[i] / _targetWaterMl).clamp(0.0, 1.0);
+      return ((m + h) / 2).toDouble();
+    });
+    final hydrationBars = _weekWaterMl
+        .map((ml) => (ml / _targetWaterMl).clamp(0.0, 1.0).toDouble())
+        .toList();
+
     return Row(
       children: [
         Expanded(
           child: _buildMetricCard(
             label: 'Score',
-            value: '88%',
+            value: '$_scorePercent%',
             icon: Icons.bar_chart_rounded,
             color: AppTheme.primary,
-            subtitle: 'Fitness',
+            subtitle: 'Today',
+            bars: scoreBars,
           ),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: _buildMetricCard(
             label: 'Hydration',
-            value: '781 ml',
+            value: '$_todayWaterMl ml',
             icon: Icons.water_drop_outlined,
             color: const Color(0xFF4285F4),
             subtitle: 'Today',
+            bars: hydrationBars,
           ),
         ),
       ],
@@ -703,6 +820,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     required IconData icon,
     required Color color,
     required String subtitle,
+    required List<double> bars,
   }) {
     return Container(
       padding: const EdgeInsets.all(18),
@@ -729,17 +847,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: List.generate(7, (i) {
-              final heights = [0.4, 0.6, 0.5, 0.8, 0.7, 0.9, 0.75];
+              final h = bars.length > i ? bars[i] : 0.0;
+              final isToday = i == 6;
               return Expanded(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 1.5),
                   child: AnimatedBuilder(
                     animation: _ringController,
                     builder: (_, __) => Container(
-                      height: 32 * heights[i] * _ringController.value,
+                      height: (32 * h * _ringController.value)
+                          .clamp(2.0, 32.0),
                       decoration: BoxDecoration(
                         color: color.withOpacity(
-                            0.5 + heights[i] * 0.5),
+                            isToday ? 1.0 : (0.3 + h * 0.5)),
                         borderRadius: BorderRadius.circular(3),
                       ),
                     ),
@@ -764,9 +884,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   // ─── WEEKLY PROGRESS ──────────────────────────────────────
   Widget _buildWeeklyProgress() {
-    final days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-    final values = [0.8, 0.6, 1.0, 0.4, 0.9, 0.5, 0.0];
-    final today = DateTime.now().weekday - 1;
+    // Last 7 days, oldest → today. Label each day by its weekday letter.
+    final now = DateTime.now();
+    final letters = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+    final days = List<String>.generate(7, (i) {
+      final d = now.subtract(Duration(days: 6 - i));
+      return letters[d.weekday - 1];
+    });
+    // Normalize: 60+ minutes of workout in a day = full bar.
+    final values = _weekWorkoutMins
+        .map((m) => (m / 60).clamp(0.0, 1.0).toDouble())
+        .toList();
+    final today = 6; // today is always the last bar
 
     return Container(
       padding: const EdgeInsets.all(20),
