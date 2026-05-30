@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../core/calculations.dart';
 import '../core/theme.dart';
 import '../widgets/dock_nav.dart';
 
@@ -40,10 +41,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       (_todayMinutes / _targetMins).clamp(0.0, 1.0);
   double get _hydrationProgress =>
       (_todayWaterMl / _targetWaterMl).clamp(0.0, 1.0);
-  int get _scorePercent =>
-      (((_moveProgress + _exerciseProgress + _hydrationProgress) / 3) * 100)
-          .round();
-  int get _level => (_monthWorkouts / 10).floor() + 1;
+  int get _scorePercent => dailyScorePercent(
+        caloriesBurned: _todayCalories,
+        targetCalories: _targetCals,
+        workoutMinutes: _todayMinutes,
+        targetMinutes: _targetMins,
+        waterMl: _todayWaterMl,
+        targetWaterMl: _targetWaterMl,
+      );
+  int get _level => levelFromWorkouts(_monthWorkouts);
 
   List<Map<String, dynamic>> get _activities => [
         {
@@ -283,12 +289,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  String _getGreeting() {
-    final hour = DateTime.now().hour;
-    if (hour < 12) return 'Good Morning';
-    if (hour < 17) return 'Good Afternoon';
-    return 'Good Evening';
-  }
+  String _getGreeting() => greetingFor(DateTime.now());
 
   String _getFormattedDate() {
     final now = DateTime.now();

@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../core/calculations.dart';
 import '../core/theme.dart';
 
 /// AI rep counter — uses the device camera + Google ML Kit Pose to count
@@ -209,13 +210,8 @@ class _PoseCounterScreenState extends State<PoseCounterScreen>
   bool _isConfident(PoseLandmark? l) =>
       l != null && (l.likelihood >= 0.5);
 
-  double _angle(PoseLandmark a, PoseLandmark b, PoseLandmark c) {
-    final ab = math.atan2(a.y - b.y, a.x - b.x);
-    final cb = math.atan2(c.y - b.y, c.x - b.x);
-    var deg = (ab - cb).abs() * 180 / math.pi;
-    if (deg > 180) deg = 360 - deg;
-    return deg;
-  }
+  double _angle(PoseLandmark a, PoseLandmark b, PoseLandmark c) =>
+      angleBetween(a.x, a.y, b.x, b.y, c.x, c.y);
 
   // ── Actions ────────────────────────────────────────────────
   void _reset() {
