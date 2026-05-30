@@ -20,7 +20,7 @@ class SupabaseConfig {
   /// LAN IP of the dev machine running `supabase start`.
   /// Real Android phones reach the host over Wi-Fi via this IP.
   /// The emulator can also use the LAN IP (Supabase binds to 0.0.0.0).
-  static const String _devLanIp = '192.168.1.100';
+  static const String _devLanIp = '192.168.0.55';
 
   /// Local stack URL.
   /// - Android (real phone or emulator) → dev machine's LAN IP.
@@ -35,4 +35,11 @@ class SupabaseConfig {
   static String get supabaseUrl => useLocalDocker ? _localUrl : _cloudUrl;
   static String get supabaseAnonKey =>
       useLocalDocker ? _localAnonKey : _cloudAnonKey;
+
+  // ── Google Sign-In ─────────────────────────────────────────
+  /// Web OAuth client ID from Google Cloud (not a secret — public).
+  /// Used as `serverClientId` by the native google_sign_in plugin so
+  /// Google issues an ID token meant for our Supabase backend.
+  static const String googleWebClientId =
+      '811560668469-3ur36ebkgmrelul50b97auenhv73ncsa.apps.googleusercontent.com';
 }

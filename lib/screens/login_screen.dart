@@ -1,9 +1,12 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:video_player/video_player.dart';
+import '../core/supabase_config.dart';
 import '../core/theme.dart';
 import '../widgets/auth_text_field.dart';
 
@@ -68,12 +71,40 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _signInWithGoogle() async {
     setState(() => _loading = true);
     try {
-      await Supabase.instance.client.auth.signInWithOAuth(
-        OAuthProvider.google,
-        redirectTo: 'http://localhost:63449',
+      if (kIsWeb) {
+        // Web: browser-based OAuth redirect via Supabase. The Google
+        // Cloud OAuth client must whitelist the callback URL.
+        await Supabase.instance.client.auth.signInWithOAuth(
+          OAuthProvider.google,
+          redirectTo: '${SupabaseConfig.supabaseUrl}/auth/v1/callback',
+        );
+        return; // browser will redirect; nothing more to do here
+      }
+
+      // Mobile (Android/iOS): native Google Sign-In, then pass the
+      // resulting ID token to Supabase.
+      final googleSignIn =
+          GoogleSignIn(serverClientId: SupabaseConfig.googleWebClientId);
+      final account = await googleSignIn.signIn();
+      if (account == null) {
+        // User cancelled the account picker.
+        if (mounted) setState(() => _loading = false);
+        return;
+      }
+      final auth = await account.authentication;
+      final idToken = auth.idToken;
+      if (idToken == null) {
+        throw 'Google did not return an ID token.';
+      }
+      await Supabase.instance.client.auth.signInWithIdToken(
+        provider: OAuthProvider.google,
+        idToken: idToken,
+        accessToken: auth.accessToken,
       );
+      if (mounted) context.go('/home');
     } catch (e) {
       _showError(e.toString());
+    } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
