@@ -801,7 +801,7 @@ class _StatsScreenState extends State<StatsScreen>
       physics: const NeverScrollableScrollPhysics(),
       crossAxisSpacing: 12,
       mainAxisSpacing: 12,
-      childAspectRatio: 1.5,
+      childAspectRatio: 1.3,
       children: cards.asMap().entries.map((e) {
         final card = e.value;
         final color = card['color'] as Color;
@@ -1133,7 +1133,7 @@ class _StatsScreenState extends State<StatsScreen>
             physics: const NeverScrollableScrollPhysics(),
             crossAxisSpacing: 12,
             mainAxisSpacing: 12,
-            childAspectRatio: 2.0,
+            childAspectRatio: 1.85,
             children: metrics.map((m) {
               final isUp = m['up'] as bool;
               return Container(

@@ -435,8 +435,10 @@ class _NutritionScreenState extends State<NutritionScreen>
             ),
           ),
           const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.spaceBetween,
             children: [150, 250, 350, 500].map((ml) {
               return GestureDetector(
                 onTap: () => _addWater(ml),

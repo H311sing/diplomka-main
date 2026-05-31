@@ -742,25 +742,31 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                       letterSpacing: 1)),
                             ],
                           ),
-                          RichText(
-                            text: TextSpan(
-                              children: [
-                                TextSpan(
-                                  text:
-                                  '${act['current']}/${act['target']}',
-                                  style: GoogleFonts.inter(
-                                    color: act['color'] as Color,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w700,
-                                  ),
+                          Flexible(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerRight,
+                              child: RichText(
+                                text: TextSpan(
+                                  children: [
+                                    TextSpan(
+                                      text:
+                                          '${act['current']}/${act['target']}',
+                                      style: GoogleFonts.inter(
+                                        color: act['color'] as Color,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    TextSpan(
+                                      text: ' ${act['unit']}',
+                                      style: GoogleFonts.inter(
+                                          color: Colors.white38,
+                                          fontSize: 10),
+                                    ),
+                                  ],
                                 ),
-                                TextSpan(
-                                  text: ' ${act['unit']}',
-                                  style: GoogleFonts.inter(
-                                      color: Colors.white38,
-                                      fontSize: 10),
-                                ),
-                              ],
+                              ),
                             ),
                           ),
                         ],
