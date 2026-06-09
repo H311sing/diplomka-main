@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'core/supabase_config.dart';
 import 'core/theme.dart';
 import 'core/notification_service.dart';
+import 'core/steps_service.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
@@ -28,6 +29,11 @@ void main() async {
   );
 
   await NotificationService.instance.init();
+  // Start the pedometer listener. Fire-and-forget — it asks for
+  // permission internally and degrades gracefully on unsupported
+  // platforms.
+  // ignore: unawaited_futures
+  StepsService.instance.start();
 
   runApp(const GymBroApp());
 }

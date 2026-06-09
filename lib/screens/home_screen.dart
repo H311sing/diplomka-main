@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/calculations.dart';
+import '../core/steps_service.dart';
 import '../core/theme.dart';
 import '../widgets/dock_nav.dart';
 
@@ -318,6 +319,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 _buildAiCoachCard(),
                 const SizedBox(height: 12),
                 _buildRepCounterCard(),
+                const SizedBox(height: 12),
+                _buildStepsCard(),
                 const SizedBox(height: 24),
                 _buildActivitySection(),
                 const SizedBox(height: 24),
@@ -652,6 +655,97 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         ),
       ),
     ).animate().fadeIn(delay: 150.ms, duration: 600.ms).slideY(begin: 0.1);
+  }
+
+  // ─── STEP COUNTER ─────────────────────────────────────────
+  // Live step count from the device's hardware step sensor (Android).
+  // The card listens to StepsService via a ValueListenableBuilder so it
+  // re-renders on every sensor update without rebuilding the whole page.
+  Widget _buildStepsCard() {
+    const int target = 10000;
+    return ValueListenableBuilder<bool>(
+      valueListenable: StepsService.instance.unavailable,
+      builder: (_, unavailable, __) {
+        return ValueListenableBuilder<int>(
+          valueListenable: StepsService.instance.todaySteps,
+          builder: (_, steps, __) {
+            final progress = (steps / target).clamp(0.0, 1.0);
+            return Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A1A1A),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: Colors.white.withOpacity(0.06)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 46,
+                    height: 46,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFA3F900).withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(Icons.directions_walk_rounded,
+                        color: Color(0xFFA3F900), size: 24),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              unavailable ? '—' : '$steps',
+                              style: GoogleFonts.bebasNeue(
+                                  color: Colors.white,
+                                  fontSize: 28,
+                                  letterSpacing: 1),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                  bottom: 4, left: 6),
+                              child: Text('/ $target steps',
+                                  style: GoogleFonts.inter(
+                                      color: Colors.white38,
+                                      fontSize: 12)),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: unavailable ? 0 : progress,
+                            backgroundColor:
+                                Colors.white.withOpacity(0.06),
+                            valueColor:
+                                const AlwaysStoppedAnimation<Color>(
+                                    Color(0xFFA3F900)),
+                            minHeight: 6,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          unavailable
+                              ? 'Step sensor unavailable (test on real Android)'
+                              : 'Today · live from device sensor',
+                          style: GoogleFonts.inter(
+                              color: Colors.white38, fontSize: 11),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    ).animate().fadeIn(delay: 200.ms, duration: 600.ms).slideY(begin: 0.1);
   }
 
   // ─── ACTIVITY RINGS ───────────────────────────────────────
