@@ -802,7 +802,27 @@ class _NutritionScreenState extends State<NutritionScreen>
                   onPressed: saving
                       ? null
                       : () async {
-                    if (nameCtrl.text.isEmpty) return;
+                    if (nameCtrl.text.trim().isEmpty) {
+                      ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                        content: Text('Enter a meal name',
+                            style: GoogleFonts.inter()),
+                        backgroundColor: Colors.red.shade800,
+                        behavior: SnackBarBehavior.floating,
+                      ));
+                      return;
+                    }
+                    final calsCheck =
+                        double.tryParse(calCtrl.text);
+                    if (calCtrl.text.isNotEmpty &&
+                        (calsCheck == null || calsCheck < 0)) {
+                      ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                        content: Text('Calories must be a positive number',
+                            style: GoogleFonts.inter()),
+                        backgroundColor: Colors.red.shade800,
+                        behavior: SnackBarBehavior.floating,
+                      ));
+                      return;
+                    }
                     setSheet(() => saving = true);
                     try {
                       final user =

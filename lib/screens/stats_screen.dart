@@ -1408,7 +1408,38 @@ class _StatsScreenState extends State<StatsScreen>
                   onPressed: saving
                       ? null
                       : () async {
-                    if (nameCtrl.text.isEmpty) return;
+                    final name = nameCtrl.text.trim();
+                    final mins = int.tryParse(durationCtrl.text) ?? 0;
+                    final cals = double.tryParse(caloriesCtrl.text) ?? 0;
+                    if (name.isEmpty) {
+                      ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                        content: Text('Enter the workout name',
+                            style: GoogleFonts.inter()),
+                        backgroundColor: Colors.red.shade800,
+                        behavior: SnackBarBehavior.floating,
+                      ));
+                      return;
+                    }
+                    if (mins <= 0 || mins > 600) {
+                      ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                        content: Text(
+                            'Duration must be between 1 and 600 minutes',
+                            style: GoogleFonts.inter()),
+                        backgroundColor: Colors.red.shade800,
+                        behavior: SnackBarBehavior.floating,
+                      ));
+                      return;
+                    }
+                    if (cals < 0 || cals > 10000) {
+                      ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                        content: Text(
+                            'Calories must be a non-negative number',
+                            style: GoogleFonts.inter()),
+                        backgroundColor: Colors.red.shade800,
+                        behavior: SnackBarBehavior.floating,
+                      ));
+                      return;
+                    }
                     setSheet(() => saving = true);
                     try {
                       final user =
@@ -1416,15 +1447,11 @@ class _StatsScreenState extends State<StatsScreen>
                       final today = DateTime.now()
                           .toIso8601String()
                           .split('T')[0];
-                      final mins =
-                          int.tryParse(durationCtrl.text) ?? 0;
-                      final cals =
-                          double.tryParse(caloriesCtrl.text) ?? 0;
                       await _supabase
                           .from('workout_logs')
                           .insert({
                         'user_id': user.id,
-                        'name': nameCtrl.text.trim(),
+                        'name': name,
                         'duration_minutes': mins,
                         'calories_burned': cals,
                         'workout_date': today,
@@ -1435,7 +1462,7 @@ class _StatsScreenState extends State<StatsScreen>
                         await _supabase.from('activities').insert({
                           'user_id': user.id,
                           'type': 'workout',
-                          'title': nameCtrl.text.trim(),
+                          'title': name,
                           'detail':
                               '$mins min · ${cals.toInt()} kcal',
                         });

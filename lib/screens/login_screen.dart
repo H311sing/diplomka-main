@@ -18,6 +18,7 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   bool _obscure = true;
@@ -53,7 +54,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _signIn() async {
-    if (_emailCtrl.text.isEmpty || _passCtrl.text.isEmpty) return;
+    if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() => _loading = true);
     try {
       await Supabase.instance.client.auth.signInWithPassword(
@@ -156,7 +157,9 @@ class _LoginScreenState extends State<LoginScreen> {
             child: SingleChildScrollView(
               padding:
               const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-              child: Column(
+              child: Form(
+                key: _formKey,
+                child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 40),
@@ -222,6 +225,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     hint: 'Email address',
                     icon: Icons.mail_outline_rounded,
                     keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.next,
+                    validator: Validators.email,
                   ).animate().fadeIn(delay: 450.ms).slideY(begin: 0.2),
 
                   const SizedBox(height: 16),
@@ -231,6 +236,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     hint: 'Password',
                     icon: Icons.lock_outline_rounded,
                     obscure: _obscure,
+                    textInputAction: TextInputAction.done,
+                    validator: Validators.loginPassword,
                     suffix: IconButton(
                       icon: Icon(
                         _obscure
@@ -371,6 +378,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ).animate().fadeIn(delay: 800.ms),
                 ],
+                ),
               ),
             ),
           ),

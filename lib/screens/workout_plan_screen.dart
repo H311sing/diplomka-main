@@ -500,7 +500,37 @@ class _WorkoutPlanScreenState extends State<WorkoutPlanScreen> {
                   onPressed: saving
                       ? null
                       : () async {
-                          if (nameCtrl.text.trim().isEmpty) return;
+                          if (nameCtrl.text.trim().isEmpty) {
+                            ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                              content: Text('Enter the exercise name',
+                                  style: GoogleFonts.inter()),
+                              backgroundColor: Colors.red.shade800,
+                              behavior: SnackBarBehavior.floating,
+                            ));
+                            return;
+                          }
+                          final sets = int.tryParse(setsCtrl.text);
+                          final reps = int.tryParse(repsCtrl.text);
+                          if (sets == null || sets < 1 || sets > 20) {
+                            ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                              content: Text(
+                                  'Sets must be a number between 1 and 20',
+                                  style: GoogleFonts.inter()),
+                              backgroundColor: Colors.red.shade800,
+                              behavior: SnackBarBehavior.floating,
+                            ));
+                            return;
+                          }
+                          if (reps == null || reps < 1 || reps > 999) {
+                            ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                              content: Text(
+                                  'Reps must be a number between 1 and 999',
+                                  style: GoogleFonts.inter()),
+                              backgroundColor: Colors.red.shade800,
+                              behavior: SnackBarBehavior.floating,
+                            ));
+                            return;
+                          }
                           setSheet(() => saving = true);
                           try {
                             final user = _supabase.auth.currentUser!;

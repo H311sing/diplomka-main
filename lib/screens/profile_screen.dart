@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/theme.dart';
 import '../core/notification_service.dart';
+import '../widgets/auth_text_field.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -18,6 +19,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
   final _weightCtrl = TextEditingController();
   final _heightCtrl = TextEditingController();
@@ -176,10 +178,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _saveProfile() async {
-    if (_nameCtrl.text.trim().isEmpty) {
-      _showError('Name cannot be empty');
-      return;
-    }
+    if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() => _saving = true);
     try {
       final user = _supabase.auth.currentUser!;
@@ -420,49 +419,60 @@ class _ProfileScreenState extends State<ProfileScreen> {
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: Colors.white.withOpacity(0.06)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Personal Info',
-              style: GoogleFonts.bebasNeue(
-                  color: Colors.white, fontSize: 20, letterSpacing: 1)),
-          const SizedBox(height: 20),
-          _profileField(
-            controller: _nameCtrl,
-            hint: 'Full Name',
-            icon: Icons.person_outline_rounded,
-            onChanged: (_) => setState(() {}),
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: _profileField(
-                  controller: _ageCtrl,
-                  hint: 'Age',
-                  icon: Icons.cake_outlined,
-                  keyboardType: TextInputType.number,
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Personal Info',
+                style: GoogleFonts.bebasNeue(
+                    color: Colors.white, fontSize: 20, letterSpacing: 1)),
+            const SizedBox(height: 20),
+            _profileField(
+              controller: _nameCtrl,
+              hint: 'Full Name',
+              icon: Icons.person_outline_rounded,
+              onChanged: (_) => setState(() {}),
+              validator: Validators.name,
+            ),
+            const SizedBox(height: 14),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: _profileField(
+                    controller: _ageCtrl,
+                    hint: 'Age',
+                    icon: Icons.cake_outlined,
+                    keyboardType: TextInputType.number,
+                    validator: (v) => Validators.positiveIntInRange(v,
+                        min: 10, max: 120, label: 'Age'),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _profileField(
-                  controller: _weightCtrl,
-                  hint: 'Weight (kg)',
-                  icon: Icons.monitor_weight_outlined,
-                  keyboardType: TextInputType.number,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _profileField(
+                    controller: _weightCtrl,
+                    hint: 'Weight (kg)',
+                    icon: Icons.monitor_weight_outlined,
+                    keyboardType: TextInputType.number,
+                    validator: (v) => Validators.positiveNumberInRange(v,
+                        min: 20, max: 300, label: 'Weight'),
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          _profileField(
-            controller: _heightCtrl,
-            hint: 'Height (cm)',
-            icon: Icons.height_rounded,
-            keyboardType: TextInputType.number,
-          ),
-        ],
+              ],
+            ),
+            const SizedBox(height: 14),
+            _profileField(
+              controller: _heightCtrl,
+              hint: 'Height (cm)',
+              icon: Icons.height_rounded,
+              keyboardType: TextInputType.number,
+              validator: (v) => Validators.positiveNumberInRange(v,
+                  min: 50, max: 250, label: 'Height'),
+            ),
+          ],
+        ),
       ),
     ).animate().fadeIn(delay: 300.ms, duration: 500.ms);
   }
@@ -473,6 +483,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     required IconData icon,
     TextInputType keyboardType = TextInputType.text,
     void Function(String)? onChanged,
+    String? Function(String?)? validator,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -480,18 +491,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
         border: Border.all(color: Colors.white.withOpacity(0.08)),
         color: Colors.white.withOpacity(0.04),
       ),
-      child: TextField(
+      child: TextFormField(
         controller: controller,
         keyboardType: keyboardType,
         onChanged: onChanged,
+        validator: validator,
+        autovalidateMode: AutovalidateMode.onUserInteraction,
         style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: GoogleFonts.inter(color: Colors.white30, fontSize: 14),
           prefixIcon: Icon(icon, color: AppTheme.primary, size: 20),
           border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          errorBorder: InputBorder.none,
+          focusedErrorBorder: InputBorder.none,
+          errorStyle: GoogleFonts.inter(
+              color: Colors.redAccent.shade100,
+              fontSize: 11,
+              fontWeight: FontWeight.w500),
           contentPadding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         ),
       ),
     );

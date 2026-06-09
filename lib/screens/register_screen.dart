@@ -15,6 +15,7 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
+  final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
@@ -54,20 +55,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _register() async {
-    if (_nameCtrl.text.isEmpty ||
-        _emailCtrl.text.isEmpty ||
-        _passCtrl.text.isEmpty) {
-      _showError('Please fill in all fields');
-      return;
-    }
-    if (_passCtrl.text != _confirmCtrl.text) {
-      _showError('Passwords do not match');
-      return;
-    }
-    if (_passCtrl.text.length < 6) {
-      _showError('Password must be at least 6 characters');
-      return;
-    }
+    // Inline validators do the heavy lifting; this just gates submission.
+    if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() => _loading = true);
     try {
       final res = await Supabase.instance.client.auth.signUp(
@@ -147,7 +136,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
             child: SingleChildScrollView(
               padding:
               const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-              child: Column(
+              child: Form(
+                key: _formKey,
+                child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   IconButton(
@@ -183,6 +174,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     controller: _nameCtrl,
                     hint: 'Full name',
                     icon: Icons.person_outline_rounded,
+                    textInputAction: TextInputAction.next,
+                    validator: Validators.name,
                   ).animate().fadeIn(delay: 350.ms).slideY(begin: 0.2),
 
                   const SizedBox(height: 14),
@@ -192,6 +185,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     hint: 'Email address',
                     icon: Icons.mail_outline_rounded,
                     keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.next,
+                    validator: Validators.email,
                   ).animate().fadeIn(delay: 450.ms).slideY(begin: 0.2),
 
                   const SizedBox(height: 14),
@@ -201,6 +196,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     hint: 'Password (min 6 characters)',
                     icon: Icons.lock_outline_rounded,
                     obscure: _obscure,
+                    textInputAction: TextInputAction.next,
+                    validator: Validators.password,
                     suffix: IconButton(
                       icon: Icon(
                         _obscure
@@ -221,6 +218,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     hint: 'Confirm password',
                     icon: Icons.lock_outline_rounded,
                     obscure: _obscure,
+                    textInputAction: TextInputAction.done,
+                    validator: (v) =>
+                        Validators.confirmPassword(v, _passCtrl.text),
                   ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.2),
 
                   const SizedBox(height: 32),
@@ -271,6 +271,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                   ).animate().fadeIn(delay: 750.ms),
                 ],
+                ),
               ),
             ),
           ),

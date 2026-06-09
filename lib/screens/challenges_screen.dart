@@ -679,7 +679,15 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
                   onPressed: saving
                       ? null
                       : () async {
-                          if (titleCtrl.text.trim().isEmpty) return;
+                          if (titleCtrl.text.trim().isEmpty) {
+                            ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                              content: Text('Enter the challenge title',
+                                  style: GoogleFonts.inter()),
+                              backgroundColor: Colors.red.shade800,
+                              behavior: SnackBarBehavior.floating,
+                            ));
+                            return;
+                          }
                           setSheet(() => saving = true);
                           try {
                             final now = DateTime.now();
