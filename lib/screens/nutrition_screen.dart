@@ -632,6 +632,36 @@ class _NutritionScreenState extends State<NutritionScreen>
     final fatCtrl = TextEditingController();
     String selectedType = 'Breakfast';
     bool saving = false;
+    bool autoFilling = false;
+
+    Future<void> autoFill(StateSetter setSheet) async {
+      final name = nameCtrl.text.trim();
+      if (name.isEmpty || autoFilling) return;
+      setSheet(() => autoFilling = true);
+      try {
+        final res = await _supabase.functions.invoke(
+          'nutrition-lookup',
+          body: {'name': name},
+        );
+        final data = res.data;
+        if (data is Map) {
+          setSheet(() {
+            calCtrl.text = '${data['calories'] ?? ''}';
+            protCtrl.text = '${data['protein'] ?? ''}';
+            carbCtrl.text = '${data['carbs'] ?? ''}';
+            fatCtrl.text = '${data['fat'] ?? ''}';
+          });
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Auto-fill failed', style: GoogleFonts.inter()),
+          backgroundColor: Colors.red.shade800,
+          behavior: SnackBarBehavior.floating,
+        ));
+      } finally {
+        setSheet(() => autoFilling = false);
+      }
+    }
 
     showModalBottomSheet(
       context: context,
@@ -667,6 +697,40 @@ class _NutritionScreenState extends State<NutritionScreen>
               const SizedBox(height: 16),
               _sheetField(nameCtrl, 'Meal name',
                   Icons.restaurant_menu_rounded),
+              const SizedBox(height: 8),
+              // AI auto-fill button: takes meal name → asks Gemini for macros.
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: autoFilling ? null : () => autoFill(setSheet),
+                  icon: autoFilling
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                              color: AppTheme.primary, strokeWidth: 2),
+                        )
+                      : const Icon(Icons.auto_awesome,
+                          color: AppTheme.primary, size: 16),
+                  label: Text(
+                    autoFilling
+                        ? 'Looking up…'
+                        : 'Auto-fill with AI',
+                    style: GoogleFonts.inter(
+                        color: AppTheme.primary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(
+                        color: AppTheme.primary.withOpacity(0.4)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 10),
+                  ),
+                ),
+              ),
               const SizedBox(height: 10),
               Row(
                 children: [

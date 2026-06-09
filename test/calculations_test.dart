@@ -178,6 +178,68 @@ void main() {
     });
   });
 
+  group('metForExercise', () {
+    test('matches known exercises by Russian keyword', () {
+      expect(metForExercise('Утренняя пробежка'), 7.0);
+      expect(metForExercise('Отжимания 4×15'), 8.0);
+      expect(metForExercise('приседания со штангой'), 5.0);
+    });
+
+    test('matches known exercises by English keyword', () {
+      expect(metForExercise('Push-up workout'), 8.0);
+      expect(metForExercise('Long run'), 9.8);
+      expect(metForExercise('Yoga session'), 3.0);
+    });
+
+    test('unknown exercise falls back to moderate intensity', () {
+      expect(metForExercise('Какое-то непонятное упражнение'), 5.0);
+      expect(metForExercise(''), 5.0);
+    });
+  });
+
+  group('caloriesBurnedMet', () {
+    test('60 kg person running 30 min ≈ 294 kcal', () {
+      // MET 9.8 × 60 × (30/60) = 294
+      expect(
+        caloriesBurnedMet(
+            exerciseName: 'Бег', durationMinutes: 30, weightKg: 60),
+        294,
+      );
+    });
+
+    test('80 kg person doing push-ups 10 min ≈ 107 kcal', () {
+      // MET 8.0 × 80 × (10/60) = 106.67 → round 107
+      expect(
+        caloriesBurnedMet(
+            exerciseName: 'Отжимания',
+            durationMinutes: 10,
+            weightKg: 80),
+        107,
+      );
+    });
+
+    test('returns 0 when weight is missing or non-positive', () {
+      expect(
+        caloriesBurnedMet(
+            exerciseName: 'Бег', durationMinutes: 30, weightKg: null),
+        0,
+      );
+      expect(
+        caloriesBurnedMet(
+            exerciseName: 'Бег', durationMinutes: 30, weightKg: 0),
+        0,
+      );
+    });
+
+    test('returns 0 when duration is zero', () {
+      expect(
+        caloriesBurnedMet(
+            exerciseName: 'Бег', durationMinutes: 0, weightKg: 70),
+        0,
+      );
+    });
+  });
+
   group('angleBetween (elbow angle for the push-up counter)', () {
     test('three collinear points along a line → 180°', () {
       expect(angleBetween(0, 0, 1, 0, 2, 0).round(), 180);

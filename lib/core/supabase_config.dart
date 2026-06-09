@@ -20,7 +20,7 @@ class SupabaseConfig {
   /// LAN IP of the dev machine running `supabase start`.
   /// Real Android phones reach the host over Wi-Fi via this IP.
   /// The emulator can also use the LAN IP (Supabase binds to 0.0.0.0).
-  static const String _devLanIp = '192.168.0.55';
+  static const String _devLanIp = '172.20.10.5';
 
   /// Local stack URL.
   /// - Android (real phone or emulator) → dev machine's LAN IP.

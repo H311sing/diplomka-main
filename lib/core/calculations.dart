@@ -73,3 +73,52 @@ double angleBetween(
   if (deg > 180) deg = 360 - deg;
   return deg;
 }
+
+/// MET (Metabolic Equivalent of Task) lookup for common exercises.
+/// Matches the most specific keyword first; returns a sensible default
+/// for unknown exercises.
+double metForExercise(String exerciseName) {
+  final n = exerciseName.toLowerCase().trim();
+  if (n.isEmpty) return 5.0;
+
+  // Order matters — match longer/more specific names first.
+  const table = <String, double>{
+    'run': 9.8, 'бег': 9.8, 'jog': 7.0, 'пробеж': 7.0,
+    'cycle': 7.5, 'bike': 7.5, 'велос': 7.5,
+    'swim': 8.0, 'плав': 8.0,
+    'push-up': 8.0, 'pushup': 8.0, 'отжим': 8.0,
+    'pull-up': 8.0, 'pullup': 8.0, 'подтяг': 8.0,
+    'squat': 5.0, 'присед': 5.0,
+    'bench': 6.0, 'жим': 6.0,
+    'deadlift': 6.0, 'становая': 6.0,
+    'plank': 3.5, 'планка': 3.5,
+    'yoga': 3.0, 'йога': 3.0, 'stretch': 2.5, 'растяж': 2.5,
+    'walk': 3.5, 'ходь': 3.5,
+    'hiit': 8.5, 'crossfit': 8.0, 'кроссфит': 8.0,
+    'box': 7.8, 'бокс': 7.8,
+    'dance': 5.5, 'танц': 5.5,
+    'rope': 11.0, 'скакалк': 11.0,
+    'row': 7.0, 'греб': 7.0,
+    'cardio': 7.0, 'кардио': 7.0,
+    'strength': 5.0, 'силов': 5.0,
+  };
+
+  for (final entry in table.entries) {
+    if (n.contains(entry.key)) return entry.value;
+  }
+  return 5.0; // unknown → moderate-intensity default
+}
+
+/// Calories burned during a workout via the MET formula:
+///   calories = MET × weight(kg) × duration(hours)
+/// If weight or duration is missing/non-positive, returns 0.
+int caloriesBurnedMet({
+  required String exerciseName,
+  required int durationMinutes,
+  required double? weightKg,
+}) {
+  if (weightKg == null || weightKg <= 0) return 0;
+  if (durationMinutes <= 0) return 0;
+  final met = metForExercise(exerciseName);
+  return (met * weightKg * durationMinutes / 60).round();
+}

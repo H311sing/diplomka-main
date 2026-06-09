@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../core/calculations.dart';
 import '../core/theme.dart';
 import '../widgets/dock_nav.dart';
 
@@ -26,6 +27,7 @@ class _StatsScreenState extends State<StatsScreen>
   double _totalHours = 0;
   int _currentStreak = 0;
   List<Map<String, dynamic>> _weightLogs = [];
+  double? _userWeight; // from profile — used for MET calorie estimates
 
   final List<String> _periods = ['Week', 'Month', 'Year'];
 
@@ -120,6 +122,14 @@ class _StatsScreenState extends State<StatsScreen>
           .eq('user_id', user.id)
           .order('logged_at');
 
+      // Profile weight (for MET calorie estimation in the add-workout sheet)
+      final profileRow = await _supabase
+          .from('profiles')
+          .select('weight')
+          .eq('id', user.id)
+          .maybeSingle();
+      final profileWeight = (profileRow?['weight'] as num?)?.toDouble();
+
       // Weekly data
       final weekStart = now.subtract(Duration(days: now.weekday - 1));
       final newWeeklyData = List<Map<String, dynamic>>.generate(7, (i) => {
@@ -168,6 +178,7 @@ class _StatsScreenState extends State<StatsScreen>
               60;
           _weeklyData = newWeeklyData;
           _weightLogs = List<Map<String, dynamic>>.from(weightData);
+          _userWeight = profileWeight;
           _loading = false;
 
           // Update health stats
@@ -1333,6 +1344,61 @@ class _StatsScreenState extends State<StatsScreen>
                         TextInputType.number),
                   ),
                 ],
+              ),
+              const SizedBox(height: 8),
+              // Auto-calc burned calories from MET table × profile weight × duration.
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    final mins = int.tryParse(durationCtrl.text) ?? 0;
+                    if (nameCtrl.text.trim().isEmpty || mins <= 0) {
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        content: Text(
+                            'Enter workout name and duration first',
+                            style: GoogleFonts.inter()),
+                        backgroundColor: Colors.orange.shade800,
+                        behavior: SnackBarBehavior.floating,
+                      ));
+                      return;
+                    }
+                    if (_userWeight == null || _userWeight! <= 0) {
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        content: Text(
+                            'Set your weight in Profile first',
+                            style: GoogleFonts.inter()),
+                        backgroundColor: Colors.orange.shade800,
+                        behavior: SnackBarBehavior.floating,
+                      ));
+                      return;
+                    }
+                    final cals = caloriesBurnedMet(
+                      exerciseName: nameCtrl.text,
+                      durationMinutes: mins,
+                      weightKg: _userWeight,
+                    );
+                    setSheet(() => caloriesCtrl.text = '$cals');
+                  },
+                  icon: const Icon(Icons.auto_awesome,
+                      color: AppTheme.primary, size: 16),
+                  label: Text(
+                    _userWeight != null
+                        ? 'Auto-calc (your weight: ${_userWeight!.toStringAsFixed(1)} kg)'
+                        : 'Auto-calc (set weight in Profile)',
+                    style: GoogleFonts.inter(
+                        color: AppTheme.primary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(
+                        color: AppTheme.primary.withOpacity(0.4)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 10),
+                  ),
+                ),
               ),
               const SizedBox(height: 20),
               SizedBox(
