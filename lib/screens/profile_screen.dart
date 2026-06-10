@@ -31,6 +31,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Uint8List? _avatarBytes;
   bool _waterReminders = false;
   bool _workoutReminders = false;
+  bool _isAdmin = false;
 
   final _supabase = Supabase.instance.client;
 
@@ -129,7 +130,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _weightCtrl.text = data['weight']?.toString() ?? '';
         _heightCtrl.text = data['height']?.toString() ?? '';
         _ageCtrl.text = data['age']?.toString() ?? '';
-        setState(() => _avatarUrl = data['avatar_url']);
+        setState(() {
+          _avatarUrl = data['avatar_url'];
+          _isAdmin = data['is_admin'] == true;
+        });
       } else {
         _nameCtrl.text =
             user.userMetadata?['full_name'] ?? user.email?.split('@').first ?? '';
@@ -287,6 +291,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _buildForm(),
               const SizedBox(height: 16),
               _buildRemindersCard(),
+              if (_isAdmin) ...[
+                const SizedBox(height: 16),
+                _buildAdminCard(),
+              ],
               const SizedBox(height: 24),
               _buildSaveButton(),
               const SizedBox(height: 16),
@@ -603,6 +611,62 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildAdminCard() {
+    return GestureDetector(
+      onTap: () => context.go('/admin'),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF7B61FF), Color(0xFF4285F4)],
+          ),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF7B61FF).withOpacity(0.3),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(Icons.shield_outlined,
+                  color: Colors.white, size: 24),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Admin Panel',
+                      style: GoogleFonts.bebasNeue(
+                          color: Colors.white,
+                          fontSize: 22,
+                          letterSpacing: 1)),
+                  Text('Manage users · ban · delete',
+                      style: GoogleFonts.inter(
+                          color: Colors.white.withOpacity(0.85),
+                          fontSize: 12)),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_rounded,
+                color: Colors.white, size: 20),
+          ],
+        ),
+      ),
+    ).animate().fadeIn(delay: 380.ms, duration: 500.ms);
   }
 
   Widget _buildSaveButton() {

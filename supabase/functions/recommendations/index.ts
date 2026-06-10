@@ -105,24 +105,43 @@ Deno.serve(async (req) => {
  "exercises":[{"title":"короткий заголовок","detail":"конкретный совет"}]}
 Дай ровно 3 совета по питанию и 3 по тренировкам. Пиши кратко и конкретно, по-русски.`;
 
-    const geminiRes = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" +
-        apiKey,
-      {
+    const model = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.5-flash";
+    const url =
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    const reqBody = JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: {
+        responseMimeType: "application/json",
+        temperature: 0.7,
+      },
+    });
+
+    // Gemini's free tier can briefly return 503 (overloaded) or 429;
+    // retry a couple of times with a short backoff before giving up.
+    let geminiRes: Response | null = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      geminiRes = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            responseMimeType: "application/json",
-            temperature: 0.7,
-          },
-        }),
-      },
-    );
+        body: reqBody,
+      });
+      if (geminiRes.ok) break;
+      if (
+        (geminiRes.status === 503 || geminiRes.status === 429) && attempt < 2
+      ) {
+        await new Promise((r) => setTimeout(r, 1200 * (attempt + 1)));
+        continue;
+      }
+      break;
+    }
 
-    if (!geminiRes.ok) {
-      return json({ error: "gemini_error", detail: await geminiRes.text() }, 502);
+    if (!geminiRes || !geminiRes.ok) {
+      const detail = geminiRes ? await geminiRes.text() : "no response";
+      console.error("Gemini error:", geminiRes?.status, detail);
+      return json(
+        { error: "gemini_error", status: geminiRes?.status ?? 0, detail },
+        502,
+      );
     }
 
     const gj = await geminiRes.json();

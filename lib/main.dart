@@ -19,6 +19,7 @@ import 'screens/challenges_screen.dart';
 import 'screens/chat_screen.dart';
 import 'screens/recommendations_screen.dart';
 import 'screens/pose_counter_screen.dart';
+import 'screens/admin_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -73,6 +74,7 @@ final _router = GoRouter(
     GoRoute(
         path: '/pose-counter',
         builder: (_, __) => const PoseCounterScreen()),
+    GoRoute(path: '/admin', builder: (_, __) => const AdminScreen()),
   ],
 );
 
