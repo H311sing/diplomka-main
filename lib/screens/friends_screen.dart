@@ -6,7 +6,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/theme.dart';
 
 class FriendsScreen extends StatefulWidget {
-  const FriendsScreen({super.key});
+  final int initialTab;
+  const FriendsScreen({super.key, this.initialTab = 0});
 
   @override
   State<FriendsScreen> createState() => _FriendsScreenState();
@@ -30,6 +31,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
   void initState() {
     super.initState();
     _uid = _supabase.auth.currentUser?.id ?? '';
+    _tab = widget.initialTab.clamp(0, _tabs.length - 1);
     _loadFriendships();
   }
 
@@ -309,10 +311,26 @@ class _FriendsScreenState extends State<FriendsScreen> {
           final profile = _otherProfile(friendship);
           return _userTile(
             profile: profile,
-            trailing: _iconButton(
-              icon: Icons.person_remove_outlined,
-              color: Colors.red,
-              onTap: () => _removeFriendship(friendship['id'] as String),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _iconButton(
+                  icon: Icons.chat_bubble_outline_rounded,
+                  color: AppTheme.primary,
+                  onTap: () {
+                    if (profile != null) {
+                      context.push('/chat', extra: profile);
+                    }
+                  },
+                ),
+                const SizedBox(width: 8),
+                _iconButton(
+                  icon: Icons.person_remove_outlined,
+                  color: Colors.red,
+                  onTap: () =>
+                      _removeFriendship(friendship['id'] as String),
+                ),
+              ],
             ),
           ).animate().fadeIn(
               delay: Duration(milliseconds: i * 60), duration: 350.ms);

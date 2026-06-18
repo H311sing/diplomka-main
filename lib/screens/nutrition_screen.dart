@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/theme.dart';
+import '../widgets/dock_nav.dart';
 
 class NutritionScreen extends StatefulWidget {
   const NutritionScreen({super.key});
@@ -171,7 +172,10 @@ class _NutritionScreenState extends State<NutritionScreen>
             style: GoogleFonts.inter(
                 color: Colors.white, fontWeight: FontWeight.w700)),
       ),
-      bottomNavigationBar: _buildBottomNav(),
+      bottomNavigationBar: DockNav(
+        items: DockNav.defaultItems(context),
+        activeIndex: 3,
+      ),
     );
   }
 
@@ -431,8 +435,10 @@ class _NutritionScreenState extends State<NutritionScreen>
             ),
           ),
           const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.spaceBetween,
             children: [150, 250, 350, 500].map((ml) {
               return GestureDetector(
                 onTap: () => _addWater(ml),
@@ -626,6 +632,36 @@ class _NutritionScreenState extends State<NutritionScreen>
     final fatCtrl = TextEditingController();
     String selectedType = 'Breakfast';
     bool saving = false;
+    bool autoFilling = false;
+
+    Future<void> autoFill(StateSetter setSheet) async {
+      final name = nameCtrl.text.trim();
+      if (name.isEmpty || autoFilling) return;
+      setSheet(() => autoFilling = true);
+      try {
+        final res = await _supabase.functions.invoke(
+          'nutrition-lookup',
+          body: {'name': name},
+        );
+        final data = res.data;
+        if (data is Map) {
+          setSheet(() {
+            calCtrl.text = '${data['calories'] ?? ''}';
+            protCtrl.text = '${data['protein'] ?? ''}';
+            carbCtrl.text = '${data['carbs'] ?? ''}';
+            fatCtrl.text = '${data['fat'] ?? ''}';
+          });
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Auto-fill failed', style: GoogleFonts.inter()),
+          backgroundColor: Colors.red.shade800,
+          behavior: SnackBarBehavior.floating,
+        ));
+      } finally {
+        setSheet(() => autoFilling = false);
+      }
+    }
 
     showModalBottomSheet(
       context: context,
@@ -661,6 +697,40 @@ class _NutritionScreenState extends State<NutritionScreen>
               const SizedBox(height: 16),
               _sheetField(nameCtrl, 'Meal name',
                   Icons.restaurant_menu_rounded),
+              const SizedBox(height: 8),
+              // AI auto-fill button: takes meal name → asks Gemini for macros.
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: autoFilling ? null : () => autoFill(setSheet),
+                  icon: autoFilling
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                              color: AppTheme.primary, strokeWidth: 2),
+                        )
+                      : const Icon(Icons.auto_awesome,
+                          color: AppTheme.primary, size: 16),
+                  label: Text(
+                    autoFilling
+                        ? 'Looking up…'
+                        : 'Auto-fill with AI',
+                    style: GoogleFonts.inter(
+                        color: AppTheme.primary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(
+                        color: AppTheme.primary.withOpacity(0.4)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 10),
+                  ),
+                ),
+              ),
               const SizedBox(height: 10),
               Row(
                 children: [
@@ -732,7 +802,27 @@ class _NutritionScreenState extends State<NutritionScreen>
                   onPressed: saving
                       ? null
                       : () async {
-                    if (nameCtrl.text.isEmpty) return;
+                    if (nameCtrl.text.trim().isEmpty) {
+                      ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                        content: Text('Enter a meal name',
+                            style: GoogleFonts.inter()),
+                        backgroundColor: Colors.red.shade800,
+                        behavior: SnackBarBehavior.floating,
+                      ));
+                      return;
+                    }
+                    final calsCheck =
+                        double.tryParse(calCtrl.text);
+                    if (calCtrl.text.isNotEmpty &&
+                        (calsCheck == null || calsCheck < 0)) {
+                      ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                        content: Text('Calories must be a positive number',
+                            style: GoogleFonts.inter()),
+                        backgroundColor: Colors.red.shade800,
+                        behavior: SnackBarBehavior.floating,
+                      ));
+                      return;
+                    }
                     setSheet(() => saving = true);
                     try {
                       final user =
@@ -820,76 +910,6 @@ class _NutritionScreenState extends State<NutritionScreen>
     );
   }
 
-  Widget _buildBottomNav() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF141414),
-        border:
-        Border(top: BorderSide(color: Colors.white.withOpacity(0.06))),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          GestureDetector(
-            onTap: () => context.go('/home'),
-            child: _navItem(Icons.home_rounded, 'Home', false),
-          ),
-          GestureDetector(
-            onTap: () => context.go('/stats'),
-            child: _navItem(Icons.bar_chart_rounded, 'Stats', false),
-          ),
-          GestureDetector(
-            onTap: () => context.go('/workout-plan'),
-            child: Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppTheme.primary, Color(0xFFFF8C42)],
-                ),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: AppTheme.primary.withOpacity(0.4),
-                    blurRadius: 16,
-                    spreadRadius: 2,
-                  ),
-                ],
-              ),
-              child: const Icon(Icons.fitness_center,
-                  color: Colors.white, size: 24),
-            ),
-          ),
-          _navItem(Icons.restaurant_menu_rounded, 'Nutrition', true),
-          GestureDetector(
-            onTap: () => context.go('/profile'),
-            child:
-            _navItem(Icons.person_outline_rounded, 'Profile', false),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _navItem(IconData icon, String label, bool active) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon,
-            color: active ? AppTheme.primary : Colors.white30,
-            size: 24),
-        const SizedBox(height: 2),
-        Text(label,
-            style: GoogleFonts.inter(
-              color: active ? AppTheme.primary : Colors.white30,
-              fontSize: 10,
-              fontWeight:
-              active ? FontWeight.w700 : FontWeight.w400,
-            )),
-      ],
-    );
-  }
 }
 
 class _RingPainter extends CustomPainter {

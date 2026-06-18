@@ -33,6 +33,16 @@ create policy "Either party can remove a friendship"
   on public.friendships for delete to authenticated
   using (auth.uid() = requester_id or auth.uid() = addressee_id);
 
+-- Stream friendship changes over Realtime so the Home screen's
+-- friend-request badge updates live.
+do $$
+begin
+  alter publication supabase_realtime add table public.friendships;
+exception
+  when duplicate_object then null;
+end
+$$;
+
 -- The Friends screen searches users by name, so authenticated users
 -- must be able to read every profile. If your existing profiles table
 -- restricts SELECT to the owner, replace that policy with this one:

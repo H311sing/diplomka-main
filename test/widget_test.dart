@@ -1,30 +1,15 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
+// Smoke test for the app's design tokens. Full widget tests aren't useful
+// here because most screens require a live Supabase connection, and the
+// theme getter touches GoogleFonts which needs a Flutter binding.
+// Unit tests for the pure helpers live in `test/calculations_test.dart`.
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:fittrack/main.dart';
+import 'package:gymbro_app/core/theme.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
-
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+  test('AppTheme palette tokens are defined', () {
+    expect(AppTheme.primary.value, isNonZero);
+    expect(AppTheme.accent.value, isNonZero);
+    expect(AppTheme.dark.value, isNonZero);
+    expect(AppTheme.surface.value, isNonZero);
   });
 }

@@ -3,7 +3,9 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../core/calculations.dart';
 import '../core/theme.dart';
+import '../widgets/dock_nav.dart';
 
 class StatsScreen extends StatefulWidget {
   const StatsScreen({super.key});
@@ -25,6 +27,7 @@ class _StatsScreenState extends State<StatsScreen>
   double _totalHours = 0;
   int _currentStreak = 0;
   List<Map<String, dynamic>> _weightLogs = [];
+  double? _userWeight; // from profile — used for MET calorie estimates
 
   final List<String> _periods = ['Week', 'Month', 'Year'];
 
@@ -119,6 +122,14 @@ class _StatsScreenState extends State<StatsScreen>
           .eq('user_id', user.id)
           .order('logged_at');
 
+      // Profile weight (for MET calorie estimation in the add-workout sheet)
+      final profileRow = await _supabase
+          .from('profiles')
+          .select('weight')
+          .eq('id', user.id)
+          .maybeSingle();
+      final profileWeight = (profileRow?['weight'] as num?)?.toDouble();
+
       // Weekly data
       final weekStart = now.subtract(Duration(days: now.weekday - 1));
       final newWeeklyData = List<Map<String, dynamic>>.generate(7, (i) => {
@@ -167,6 +178,7 @@ class _StatsScreenState extends State<StatsScreen>
               60;
           _weeklyData = newWeeklyData;
           _weightLogs = List<Map<String, dynamic>>.from(weightData);
+          _userWeight = profileWeight;
           _loading = false;
 
           // Update health stats
@@ -236,7 +248,10 @@ class _StatsScreenState extends State<StatsScreen>
             style: GoogleFonts.inter(
                 color: Colors.white, fontWeight: FontWeight.w700)),
       ),
-      bottomNavigationBar: _buildBottomNav(),
+      bottomNavigationBar: DockNav(
+        items: DockNav.defaultItems(context),
+        activeIndex: 1,
+      ),
     );
   }
 
@@ -797,7 +812,7 @@ class _StatsScreenState extends State<StatsScreen>
       physics: const NeverScrollableScrollPhysics(),
       crossAxisSpacing: 12,
       mainAxisSpacing: 12,
-      childAspectRatio: 1.5,
+      childAspectRatio: 1.3,
       children: cards.asMap().entries.map((e) {
         final card = e.value;
         final color = card['color'] as Color;
@@ -1129,7 +1144,7 @@ class _StatsScreenState extends State<StatsScreen>
             physics: const NeverScrollableScrollPhysics(),
             crossAxisSpacing: 12,
             mainAxisSpacing: 12,
-            childAspectRatio: 2.0,
+            childAspectRatio: 1.85,
             children: metrics.map((m) {
               final isUp = m['up'] as bool;
               return Container(
@@ -1330,6 +1345,61 @@ class _StatsScreenState extends State<StatsScreen>
                   ),
                 ],
               ),
+              const SizedBox(height: 8),
+              // Auto-calc burned calories from MET table × profile weight × duration.
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    final mins = int.tryParse(durationCtrl.text) ?? 0;
+                    if (nameCtrl.text.trim().isEmpty || mins <= 0) {
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        content: Text(
+                            'Enter workout name and duration first',
+                            style: GoogleFonts.inter()),
+                        backgroundColor: Colors.orange.shade800,
+                        behavior: SnackBarBehavior.floating,
+                      ));
+                      return;
+                    }
+                    if (_userWeight == null || _userWeight! <= 0) {
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        content: Text(
+                            'Set your weight in Profile first',
+                            style: GoogleFonts.inter()),
+                        backgroundColor: Colors.orange.shade800,
+                        behavior: SnackBarBehavior.floating,
+                      ));
+                      return;
+                    }
+                    final cals = caloriesBurnedMet(
+                      exerciseName: nameCtrl.text,
+                      durationMinutes: mins,
+                      weightKg: _userWeight,
+                    );
+                    setSheet(() => caloriesCtrl.text = '$cals');
+                  },
+                  icon: const Icon(Icons.auto_awesome,
+                      color: AppTheme.primary, size: 16),
+                  label: Text(
+                    _userWeight != null
+                        ? 'Auto-calc (your weight: ${_userWeight!.toStringAsFixed(1)} kg)'
+                        : 'Auto-calc (set weight in Profile)',
+                    style: GoogleFonts.inter(
+                        color: AppTheme.primary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(
+                        color: AppTheme.primary.withOpacity(0.4)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 10),
+                  ),
+                ),
+              ),
               const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
@@ -1338,7 +1408,38 @@ class _StatsScreenState extends State<StatsScreen>
                   onPressed: saving
                       ? null
                       : () async {
-                    if (nameCtrl.text.isEmpty) return;
+                    final name = nameCtrl.text.trim();
+                    final mins = int.tryParse(durationCtrl.text) ?? 0;
+                    final cals = double.tryParse(caloriesCtrl.text) ?? 0;
+                    if (name.isEmpty) {
+                      ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                        content: Text('Enter the workout name',
+                            style: GoogleFonts.inter()),
+                        backgroundColor: Colors.red.shade800,
+                        behavior: SnackBarBehavior.floating,
+                      ));
+                      return;
+                    }
+                    if (mins <= 0 || mins > 600) {
+                      ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                        content: Text(
+                            'Duration must be between 1 and 600 minutes',
+                            style: GoogleFonts.inter()),
+                        backgroundColor: Colors.red.shade800,
+                        behavior: SnackBarBehavior.floating,
+                      ));
+                      return;
+                    }
+                    if (cals < 0 || cals > 10000) {
+                      ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                        content: Text(
+                            'Calories must be a non-negative number',
+                            style: GoogleFonts.inter()),
+                        backgroundColor: Colors.red.shade800,
+                        behavior: SnackBarBehavior.floating,
+                      ));
+                      return;
+                    }
                     setSheet(() => saving = true);
                     try {
                       final user =
@@ -1346,15 +1447,11 @@ class _StatsScreenState extends State<StatsScreen>
                       final today = DateTime.now()
                           .toIso8601String()
                           .split('T')[0];
-                      final mins =
-                          int.tryParse(durationCtrl.text) ?? 0;
-                      final cals =
-                          double.tryParse(caloriesCtrl.text) ?? 0;
                       await _supabase
                           .from('workout_logs')
                           .insert({
                         'user_id': user.id,
-                        'name': nameCtrl.text.trim(),
+                        'name': name,
                         'duration_minutes': mins,
                         'calories_burned': cals,
                         'workout_date': today,
@@ -1365,7 +1462,7 @@ class _StatsScreenState extends State<StatsScreen>
                         await _supabase.from('activities').insert({
                           'user_id': user.id,
                           'type': 'workout',
-                          'title': nameCtrl.text.trim(),
+                          'title': name,
                           'detail':
                               '$mins min · ${cals.toInt()} kcal',
                         });
@@ -1431,78 +1528,6 @@ class _StatsScreenState extends State<StatsScreen>
     );
   }
 
-  // ─── BOTTOM NAV ───────────────────────────────────────────
-  Widget _buildBottomNav() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF141414),
-        border: Border(
-            top: BorderSide(color: Colors.white.withOpacity(0.06))),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          GestureDetector(
-            onTap: () => context.go('/home'),
-            child: _navItem(Icons.home_rounded, 'Home', false),
-          ),
-          _navItem(Icons.bar_chart_rounded, 'Stats', true),
-          GestureDetector(
-            onTap: () => context.go('/workout-plan'),
-            child: Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppTheme.primary, Color(0xFFFF8C42)],
-                ),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: AppTheme.primary.withOpacity(0.4),
-                    blurRadius: 16,
-                    spreadRadius: 2,
-                  ),
-                ],
-              ),
-              child: const Icon(Icons.fitness_center,
-                  color: Colors.white, size: 24),
-            ),
-          ),
-          GestureDetector(
-            onTap: () => context.go('/nutrition'),
-            child: _navItem(
-                Icons.restaurant_menu_rounded, 'Nutrition', false),
-          ),
-          GestureDetector(
-            onTap: () => context.go('/profile'),
-            child:
-            _navItem(Icons.person_outline_rounded, 'Profile', false),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _navItem(IconData icon, String label, bool active) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon,
-            color: active ? AppTheme.primary : Colors.white30,
-            size: 24),
-        const SizedBox(height: 2),
-        Text(label,
-            style: GoogleFonts.inter(
-              color: active ? AppTheme.primary : Colors.white30,
-              fontSize: 10,
-              fontWeight:
-              active ? FontWeight.w700 : FontWeight.w400,
-            )),
-      ],
-    );
-  }
 }
 
 // ─── WEIGHT CHART PAINTER ─────────────────────────────────────

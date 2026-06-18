@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/theme.dart';
 import '../core/notification_service.dart';
+import '../widgets/auth_text_field.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -18,6 +19,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
   final _weightCtrl = TextEditingController();
   final _heightCtrl = TextEditingController();
@@ -29,6 +31,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Uint8List? _avatarBytes;
   bool _waterReminders = false;
   bool _workoutReminders = false;
+  bool _isAdmin = false;
 
   final _supabase = Supabase.instance.client;
 
@@ -127,7 +130,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _weightCtrl.text = data['weight']?.toString() ?? '';
         _heightCtrl.text = data['height']?.toString() ?? '';
         _ageCtrl.text = data['age']?.toString() ?? '';
-        setState(() => _avatarUrl = data['avatar_url']);
+        setState(() {
+          _avatarUrl = data['avatar_url'];
+          _isAdmin = data['is_admin'] == true;
+        });
       } else {
         _nameCtrl.text =
             user.userMetadata?['full_name'] ?? user.email?.split('@').first ?? '';
@@ -176,10 +182,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _saveProfile() async {
-    if (_nameCtrl.text.trim().isEmpty) {
-      _showError('Name cannot be empty');
-      return;
-    }
+    if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() => _saving = true);
     try {
       final user = _supabase.auth.currentUser!;
@@ -288,6 +291,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _buildForm(),
               const SizedBox(height: 16),
               _buildRemindersCard(),
+              if (_isAdmin) ...[
+                const SizedBox(height: 16),
+                _buildAdminCard(),
+              ],
               const SizedBox(height: 24),
               _buildSaveButton(),
               const SizedBox(height: 16),
@@ -420,49 +427,60 @@ class _ProfileScreenState extends State<ProfileScreen> {
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: Colors.white.withOpacity(0.06)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Personal Info',
-              style: GoogleFonts.bebasNeue(
-                  color: Colors.white, fontSize: 20, letterSpacing: 1)),
-          const SizedBox(height: 20),
-          _profileField(
-            controller: _nameCtrl,
-            hint: 'Full Name',
-            icon: Icons.person_outline_rounded,
-            onChanged: (_) => setState(() {}),
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: _profileField(
-                  controller: _ageCtrl,
-                  hint: 'Age',
-                  icon: Icons.cake_outlined,
-                  keyboardType: TextInputType.number,
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Personal Info',
+                style: GoogleFonts.bebasNeue(
+                    color: Colors.white, fontSize: 20, letterSpacing: 1)),
+            const SizedBox(height: 20),
+            _profileField(
+              controller: _nameCtrl,
+              hint: 'Full Name',
+              icon: Icons.person_outline_rounded,
+              onChanged: (_) => setState(() {}),
+              validator: Validators.name,
+            ),
+            const SizedBox(height: 14),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: _profileField(
+                    controller: _ageCtrl,
+                    hint: 'Age',
+                    icon: Icons.cake_outlined,
+                    keyboardType: TextInputType.number,
+                    validator: (v) => Validators.positiveIntInRange(v,
+                        min: 10, max: 120, label: 'Age'),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _profileField(
-                  controller: _weightCtrl,
-                  hint: 'Weight (kg)',
-                  icon: Icons.monitor_weight_outlined,
-                  keyboardType: TextInputType.number,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _profileField(
+                    controller: _weightCtrl,
+                    hint: 'Weight (kg)',
+                    icon: Icons.monitor_weight_outlined,
+                    keyboardType: TextInputType.number,
+                    validator: (v) => Validators.positiveNumberInRange(v,
+                        min: 20, max: 300, label: 'Weight'),
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          _profileField(
-            controller: _heightCtrl,
-            hint: 'Height (cm)',
-            icon: Icons.height_rounded,
-            keyboardType: TextInputType.number,
-          ),
-        ],
+              ],
+            ),
+            const SizedBox(height: 14),
+            _profileField(
+              controller: _heightCtrl,
+              hint: 'Height (cm)',
+              icon: Icons.height_rounded,
+              keyboardType: TextInputType.number,
+              validator: (v) => Validators.positiveNumberInRange(v,
+                  min: 50, max: 250, label: 'Height'),
+            ),
+          ],
+        ),
       ),
     ).animate().fadeIn(delay: 300.ms, duration: 500.ms);
   }
@@ -473,6 +491,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     required IconData icon,
     TextInputType keyboardType = TextInputType.text,
     void Function(String)? onChanged,
+    String? Function(String?)? validator,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -480,18 +499,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
         border: Border.all(color: Colors.white.withOpacity(0.08)),
         color: Colors.white.withOpacity(0.04),
       ),
-      child: TextField(
+      child: TextFormField(
         controller: controller,
         keyboardType: keyboardType,
         onChanged: onChanged,
+        validator: validator,
+        autovalidateMode: AutovalidateMode.onUserInteraction,
         style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: GoogleFonts.inter(color: Colors.white30, fontSize: 14),
           prefixIcon: Icon(icon, color: AppTheme.primary, size: 20),
           border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          errorBorder: InputBorder.none,
+          focusedErrorBorder: InputBorder.none,
+          errorStyle: GoogleFonts.inter(
+              color: Colors.redAccent.shade100,
+              fontSize: 11,
+              fontWeight: FontWeight.w500),
           contentPadding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         ),
       ),
     );
@@ -582,6 +611,62 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildAdminCard() {
+    return GestureDetector(
+      onTap: () => context.go('/admin'),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF7B61FF), Color(0xFF4285F4)],
+          ),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF7B61FF).withOpacity(0.3),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(Icons.shield_outlined,
+                  color: Colors.white, size: 24),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Admin Panel',
+                      style: GoogleFonts.bebasNeue(
+                          color: Colors.white,
+                          fontSize: 22,
+                          letterSpacing: 1)),
+                  Text('Manage users · ban · delete',
+                      style: GoogleFonts.inter(
+                          color: Colors.white.withOpacity(0.85),
+                          fontSize: 12)),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_rounded,
+                color: Colors.white, size: 20),
+          ],
+        ),
+      ),
+    ).animate().fadeIn(delay: 380.ms, duration: 500.ms);
   }
 
   Widget _buildSaveButton() {

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/theme.dart';
+import '../widgets/dock_nav.dart';
 
 class WorkoutPlanScreen extends StatefulWidget {
   const WorkoutPlanScreen({super.key});
@@ -158,7 +159,10 @@ class _WorkoutPlanScreenState extends State<WorkoutPlanScreen> {
             style: GoogleFonts.inter(
                 color: Colors.white, fontWeight: FontWeight.w700)),
       ),
-      bottomNavigationBar: _buildBottomNav(),
+      bottomNavigationBar: DockNav(
+        items: DockNav.defaultItems(context),
+        activeIndex: 2,
+      ),
     );
   }
 
@@ -496,7 +500,37 @@ class _WorkoutPlanScreenState extends State<WorkoutPlanScreen> {
                   onPressed: saving
                       ? null
                       : () async {
-                          if (nameCtrl.text.trim().isEmpty) return;
+                          if (nameCtrl.text.trim().isEmpty) {
+                            ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                              content: Text('Enter the exercise name',
+                                  style: GoogleFonts.inter()),
+                              backgroundColor: Colors.red.shade800,
+                              behavior: SnackBarBehavior.floating,
+                            ));
+                            return;
+                          }
+                          final sets = int.tryParse(setsCtrl.text);
+                          final reps = int.tryParse(repsCtrl.text);
+                          if (sets == null || sets < 1 || sets > 20) {
+                            ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                              content: Text(
+                                  'Sets must be a number between 1 and 20',
+                                  style: GoogleFonts.inter()),
+                              backgroundColor: Colors.red.shade800,
+                              behavior: SnackBarBehavior.floating,
+                            ));
+                            return;
+                          }
+                          if (reps == null || reps < 1 || reps > 999) {
+                            ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                              content: Text(
+                                  'Reps must be a number between 1 and 999',
+                                  style: GoogleFonts.inter()),
+                              backgroundColor: Colors.red.shade800,
+                              behavior: SnackBarBehavior.floating,
+                            ));
+                            return;
+                          }
                           setSheet(() => saving = true);
                           try {
                             final user = _supabase.auth.currentUser!;
@@ -572,73 +606,4 @@ class _WorkoutPlanScreenState extends State<WorkoutPlanScreen> {
     );
   }
 
-  Widget _buildBottomNav() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF141414),
-        border:
-            Border(top: BorderSide(color: Colors.white.withOpacity(0.06))),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          GestureDetector(
-            onTap: () => context.go('/home'),
-            child: _navItem(Icons.home_rounded, 'Home', false),
-          ),
-          GestureDetector(
-            onTap: () => context.go('/stats'),
-            child: _navItem(Icons.bar_chart_rounded, 'Stats', false),
-          ),
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [AppTheme.primary, Color(0xFFFF8C42)],
-              ),
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: AppTheme.primary.withOpacity(0.4),
-                  blurRadius: 16,
-                  spreadRadius: 2,
-                ),
-              ],
-            ),
-            child: const Icon(Icons.fitness_center,
-                color: Colors.white, size: 24),
-          ),
-          GestureDetector(
-            onTap: () => context.go('/nutrition'),
-            child:
-                _navItem(Icons.restaurant_menu_rounded, 'Nutrition', false),
-          ),
-          GestureDetector(
-            onTap: () => context.go('/profile'),
-            child:
-                _navItem(Icons.person_outline_rounded, 'Profile', false),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _navItem(IconData icon, String label, bool active) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon,
-            color: active ? AppTheme.primary : Colors.white30, size: 24),
-        const SizedBox(height: 2),
-        Text(label,
-            style: GoogleFonts.inter(
-              color: active ? AppTheme.primary : Colors.white30,
-              fontSize: 10,
-              fontWeight: active ? FontWeight.w700 : FontWeight.w400,
-            )),
-      ],
-    );
-  }
 }
